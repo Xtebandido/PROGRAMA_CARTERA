@@ -1,14 +1,14 @@
 package com.app;
 
-import com.classes.methods.leerExcel;
-import com.classes.methods.loading;
+import com.classes.methods.uploadXLS;
 import javafx.application.Application;
 
+import javax.swing.*;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -18,7 +18,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -36,9 +35,9 @@ public class app extends Application {
         BorderPane mainPanel = new BorderPane();
         //components
         Button minimize = new Button();
-        minimize.setStyle("-fx-background-color: #ffc02b; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ffc02b; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+        minimize.setStyle("-fx-background-color: #E8E01E; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ffc02b; -fx-border-width: 2.5px; -fx-border-radius: 15px");
         Button close = new Button();
-        close.setStyle("-fx-background-color: #ff6158; -fx-background-radius: 1em;-fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ff6158; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+        close.setStyle("-fx-background-color: #E81E39; -fx-background-radius: 1em;-fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ff6158; -fx-border-width: 2.5px; -fx-border-radius: 15px");
         //action
         minimize.setOnAction(event -> {primaryStage.setIconified(true);});
         close.setOnAction(event -> {primaryStage.close(); System.exit(0);});
@@ -48,15 +47,15 @@ public class app extends Application {
             public void handle(MouseEvent e) {
                 if (e.getTarget() == minimize) {
                     if (e.getEventType() == MouseEvent.MOUSE_ENTERED) {
-                        minimize.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ffc02b; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+                        minimize.setStyle("-fx-background-color: #ffc02b; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #E8E01E; -fx-border-width: 2.5px; -fx-border-radius: 15px");
                     } else {
-                        minimize.setStyle("-fx-background-color: #ffc02b; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ffc02b; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+                        minimize.setStyle("-fx-background-color: #E8E01E; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ffc02b; -fx-border-width: 2.5px; -fx-border-radius: 15px");
                     }
                 } else if (e.getTarget() == close) {
                     if (e.getEventType() == MouseEvent.MOUSE_ENTERED) {
-                        close.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ff6158; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+                        close.setStyle("-fx-background-color: #ff6158; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #E81E39; -fx-border-width: 2.5px; -fx-border-radius: 15px");
                     } else {
-                        close.setStyle("-fx-background-color: #ff6158; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ff6158; -fx-border-width: 2.5px; -fx-border-radius: 15px");
+                        close.setStyle("-fx-background-color: #E81E39; -fx-background-radius: 1em; -fx-min-width: 20px; -fx-max-width: 20px; -fx-min-height: 20px; -fx-max-height: 20px; -fx-border-color: #ff6158; -fx-border-width: 2.5px; -fx-border-radius: 15px");
                     }
                 }
             }
@@ -66,24 +65,24 @@ public class app extends Application {
         minimize.addEventFilter(MouseEvent.MOUSE_EXITED, eventHandler);
         close.addEventFilter(MouseEvent.MOUSE_ENTERED, eventHandler);
         close.addEventFilter(MouseEvent.MOUSE_EXITED, eventHandler);
-        //frame
-        //top
+        //frame -> top
         ImageView iconView = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("media/iconTOP.png")));
         HBox buttonsTop = new HBox();
         buttonsTop.getChildren().addAll(minimize, close);
         buttonsTop.setSpacing(10);
         HBox layoutTop = new HBox();
-        layoutTop.setPadding(new Insets(15, 30, 15, 12));
-        layoutTop.setStyle("-fx-background-color: #07a1e9;");
+        layoutTop.setPadding(new Insets(15, 15, 15, 15));
+        layoutTop.setStyle("-fx-background-color: #07a1e9; -fx-background-radius: 8px;");
         layoutTop.getChildren().add(iconView);
-        layoutTop.setSpacing(230);
+        layoutTop.setSpacing(212);
         layoutTop.getChildren().add(buttonsTop);
         mainPanel.setTop(layoutTop);
-        //center
+        //frame -> center
         Pane layout = new Pane();
-        Text selectLabel = new Text("SELECCIONE UN ACTA");
-        selectLabel.setFont(new Font("OCR A", 26));
-        selectLabel.relocate(105,55);
+        Label selectLabel = new Label("SELECCIONE UN ACTA");
+        selectLabel.setFont(new Font("Cooper Black", 26));
+        selectLabel.setTextFill(Color.web("#FFFFFF"));
+        selectLabel.relocate(75,55);
         layout.getChildren().add(selectLabel);
 
         TextField tf = new TextField();
@@ -97,15 +96,14 @@ public class app extends Application {
         selectButton.relocate(355,105);
         layout.getChildren().add(selectButton);
 
-        final File[] file = {null};
-
+        final File[] file = {null, null};
         selectButton.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Excel", "*.xlsx", "*.xls");
             fileChooser.getExtensionFilters().add(extFilter);
-
             file[0] = fileChooser.showOpenDialog(null);
             if (file[0] != null) {
+                file[1] = file[0];
                 tf.setText(file[0].getName());
             }
         });
@@ -115,21 +113,18 @@ public class app extends Application {
         uploadButton.relocate(385,105);
         layout.getChildren().add(uploadButton);
         uploadButton.setOnAction(event -> {
-            if (file[0] != null) {
-                leerExcel xlsx = new leerExcel();
-                xlsx.leerExcel(file[0], primaryStage);
+            if (file[1] != null) {
+                uploadXLS upload = new uploadXLS();
+                upload.run(file[1], primaryStage);
             } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle(null);
-                alert.setHeaderText(null);
-                alert.setContentText("ERROR: SELECCIONE UN ARCHIVO");
-                alert.showAndWait();
+                JOptionPane.showMessageDialog(null, "SELECCIONE UN ARCHIVO", "Error",JOptionPane.ERROR_MESSAGE); //MENSAJE DE ERROR POR DATOS MAL ESCRITOS EN ALGUNAS COLUMNAS
             }
         });
 
         mainPanel.setCenter(layout);
         //root
         GridPane root = new GridPane();
+        root.setStyle("-fx-background-color: #4EBAEC; -fx-border-color: #000000; -fx-border-width: 5px; -fx-border-radius: 8px");
         root.getChildren().add(mainPanel);
         //border root
         Rectangle rect = new Rectangle(0,0,500,500);

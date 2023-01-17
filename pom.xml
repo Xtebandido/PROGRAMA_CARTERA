@@ -14,15 +14,20 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.36.0.3</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.aspose/aspose-cells -->
+        <!-- https://mvnrepository.com/artifact/com.luhuiguo/aspose-cells -->
         <dependency>
-            <groupId>com.aspose</groupId>
+            <groupId>com.luhuiguo</groupId>
             <artifactId>aspose-cells</artifactId>
-            <version>8.2.1</version>
+            <version>23.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/net.sourceforge.javacsv/javacsv -->
+        <dependency>
+            <groupId>net.sourceforge.javacsv</groupId>
+            <artifactId>javacsv</artifactId>
+            <version>2.0</version>
         </dependency>
 
     </dependencies>
-
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

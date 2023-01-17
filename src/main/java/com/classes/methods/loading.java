@@ -20,7 +20,7 @@ public class loading {
         splashLayout.getChildren().add(loadGifView);
         Group group = new Group();
         group.getChildren().add(splashLayout);
-         group.setStyle("-fx-background-color: transparent");
+        group.setStyle("-fx-background-color: transparent");
         Scene successScene = new Scene(group, 256, 256);
         successScene.setFill(Color.TRANSPARENT);
         initStage.setTitle("Cargando");
@@ -33,7 +33,9 @@ public class loading {
         initStage.setX((primScreenBounds.getWidth() - initStage.getWidth()) / 2);
         initStage.setY((primScreenBounds.getHeight() - initStage.getHeight()) / 2);
     }
+
     public void closeLoader() {
        initStage.close();
     }
+
 }

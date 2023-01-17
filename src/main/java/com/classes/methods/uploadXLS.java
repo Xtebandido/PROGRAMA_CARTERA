@@ -1,24 +1,38 @@
 package com.classes.methods;
 
-import com.classes.connection.conexion;
-import javafx.stage.Stage;
-
-import javax.swing.*;
 import java.io.File;
-import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
-public class leerExcel {
-    public void leerExcel(File file, Stage primaryStage) {
-            loading load = new loading();
-            primaryStage.close();
-            load.loader();
+import com.csvreader.CsvReader;
+import javafx.stage.Stage;
+import javax.swing.*;
+import com.aspose.cells.*;
+
+
+public class uploadXLS {
+
+    boolean error;
+
+    public void run(File file, Stage primaryStage) {
+        primaryStage.close();
+        loading load = new loading();
+        load.loader();
+
         try {
-            Workbook wbXLSX = new Workbook(PATH); //NUEVO LIBRO EXCEL
-            Worksheet ws = wbXLSX.getWorksheets().get(0); //HOJA EXCEL, PRIMERA HOJA
+            Workbook wbXLSX = new Workbook(file.getAbsolutePath()); //NUEVO LIBRO EXCEL
+            new Thread(() -> firstSheet(wbXLSX)).run();
+        } catch (Exception e) {
+            System.out.println(e);
+        } finally {
+            load.closeLoader();
+            if (error == false) {
+                JOptionPane.showMessageDialog(null, file.getName()+" SUBIDO CORRECTAMENTE.", "Success",JOptionPane.INFORMATION_MESSAGE);
+            }
+            primaryStage.show();
+        }
+
+            /*
             //VALIDAR ESTRUCTURA
             int valCOLUMN = ws.getCells().getMaxDataColumn(); //RECUENTO DE COLUMNA
             //SI TIENE 21 COLUMNAS HACER ESTO
@@ -261,14 +275,29 @@ public class leerExcel {
             } else {
                 dialog.dispose(); //CERRAR LOADING
                 JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE LA ESTRUCTURA DEL ARCHIVO", "",JOptionPane.INFORMATION_MESSAGE); //MENSAJE DE ERROR POR LA ESTRUCTURA DEL ARCHIVO
+            }*/
+    }
+
+    public void firstSheet(Workbook wbXLSX) {
+        Worksheet wSheet = wbXLSX.getWorksheets().get(0);
+        if ((wSheet.getCells().getMaxDataColumn()+1) == 17) {
+            try {
+                File firstCSV = new File("files\\impresion.csv");
+                wbXLSX.save(firstCSV.getAbsolutePath());
+
+                List<String> data = new ArrayList<>();
+
+                CsvReader readLECTURAS = new CsvReader(firstCSV.getAbsolutePath());
+                readLECTURAS.readHeaders();
+
+
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "VERIFIQUE LOS DATOS DEL ARCHIVO.", "ERROR",JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception e) {
-            dialog.dispose(); //CERRAR LOADING
-            File file = new File("files\\Importe.csv");
-            file.delete();
-            JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE LAS FECHAS DEL ARCHIVO", "",JOptionPane.INFORMATION_MESSAGE); //MENSAJE DE ERROR POR DATOS MAL ESCRITOS EN ALGUNAS COLUMNAS
-            loading close = new loading();
-            close.closeLoader();
+
+        } else {
+            error = true;
+            JOptionPane.showMessageDialog(null, "VERIFIQUE LA ESTRUCTURA DEL ARCHIVO.", "ERROR",JOptionPane.ERROR_MESSAGE);
         }
     }
 }
