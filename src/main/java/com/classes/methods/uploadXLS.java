@@ -1,12 +1,14 @@
 package com.classes.methods;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-
 import com.csvreader.CsvReader;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
-import javax.swing.*;
 import com.aspose.cells.*;
 
 
@@ -23,16 +25,102 @@ public class uploadXLS {
             Workbook wbXLSX = new Workbook(file.getAbsolutePath()); //NUEVO LIBRO EXCEL
             new Thread(() -> firstSheet(wbXLSX)).run();
         } catch (Exception e) {
-            System.out.println(e);
         } finally {
-            load.closeLoader();
-            if (error == false) {
-                JOptionPane.showMessageDialog(null, file.getName()+" SUBIDO CORRECTAMENTE.", "Success",JOptionPane.INFORMATION_MESSAGE);
+            if (error != true) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setHeaderText(null);
+                alert.setTitle("Success");
+                alert.setContentText(file.getName()+" SUBIDO CORRECTAMENTE.");
+                alert.showAndWait();
             }
-            primaryStage.show();
-        }
 
-            /*
+            load.closeLoader();
+            primaryStage.show();
+
+        }
+    }
+
+    public void firstSheet(Workbook wbXLSX) {
+
+        Worksheet wSheet = wbXLSX.getWorksheets().get(0);
+        if ((wSheet.getCells().getMaxDataColumn()+1) == 17) {
+            String[] errorList = {"","","","","","",""};
+            boolean emptyCell = false;
+            try {
+                File firstCSV = new File("files\\impresion.csv");
+                wbXLSX.save(firstCSV.getAbsolutePath());
+
+                List<String> data = new ArrayList<>();
+
+                CsvReader csv = new CsvReader(firstCSV.getAbsolutePath());
+                csv.readHeaders();
+
+                String cuenta_contrato = null;
+                String pagos = null;
+                String tipo_solicitud = null;
+                String fecha = null;
+                String porcion = null;
+                String f_ejecutado = null;
+                String f_cierre = null;
+
+                while (csv.readRecord()) {
+                    cuenta_contrato = csv.get(0);
+                    pagos = csv.get(1);
+                    tipo_solicitud = csv.get(3);
+                    porcion = csv.get(7);
+
+                    DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    try {
+                        fecha = csv.get(5);
+                        Date date = dateFormat.parse(fecha);
+                        fecha = simpleDateFormat.format(date);
+                    } catch (Exception e) {
+                        errorList[3] = "\n• fecha de programación";
+                        emptyCell = true;
+                    }
+                    try {
+                        f_ejecutado = csv.get(12);
+                        Date date = dateFormat.parse(f_ejecutado);
+                        f_ejecutado = simpleDateFormat.format(date);
+                    } catch (Exception e) {
+                        errorList[5] = "\n• fecha de ejecución";
+                        emptyCell = true;
+                    }
+                    try {
+                        f_cierre = csv.get(13);
+                        Date date = dateFormat.parse(f_cierre);
+                        f_cierre = simpleDateFormat.format(date);
+                    } catch (Exception e) {
+                        errorList[6] = "\n• fecha de cierre"; emptyCell = true;
+                    }
+                    if (cuenta_contrato == "") {errorList[0] = "\n• cuenta contrato"; emptyCell = true;}
+                    if (pagos == "") {errorList[1] = "\n• pagos"; emptyCell = true;}
+                    if (tipo_solicitud == "") {errorList[2] = "\n• tipo de solicitud"; emptyCell = true;}
+                    if (porcion == "") {errorList[4] = "\n• porcion"; emptyCell = true;}
+                }
+                csv.close();
+                if (emptyCell == true) {
+                    error = true;
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Error");
+                    alert.setContentText("VERIFIQUE LOS SIGUIENTES CAMPOS DEL ARCHIVO DE IMPRESIÓN: " + errorList[0] + errorList[1] + errorList[2] + errorList[3] + errorList[4] + errorList[5] + errorList[6]);
+                    alert.showAndWait();
+                }
+            } catch (Exception e) {
+            }
+        } else {
+            error = true;
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setHeaderText(null);
+            alert.setTitle("Error");
+            alert.setContentText("VERIFIQUE LA ESTRUCTURA DEL ARCHIVO DE IMPRESIÓN.");
+            alert.showAndWait();
+        }
+    }
+}
+/*
             //VALIDAR ESTRUCTURA
             int valCOLUMN = ws.getCells().getMaxDataColumn(); //RECUENTO DE COLUMNA
             //SI TIENE 21 COLUMNAS HACER ESTO
@@ -276,28 +364,3 @@ public class uploadXLS {
                 dialog.dispose(); //CERRAR LOADING
                 JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE LA ESTRUCTURA DEL ARCHIVO", "",JOptionPane.INFORMATION_MESSAGE); //MENSAJE DE ERROR POR LA ESTRUCTURA DEL ARCHIVO
             }*/
-    }
-
-    public void firstSheet(Workbook wbXLSX) {
-        Worksheet wSheet = wbXLSX.getWorksheets().get(0);
-        if ((wSheet.getCells().getMaxDataColumn()+1) == 17) {
-            try {
-                File firstCSV = new File("files\\impresion.csv");
-                wbXLSX.save(firstCSV.getAbsolutePath());
-
-                List<String> data = new ArrayList<>();
-
-                CsvReader readLECTURAS = new CsvReader(firstCSV.getAbsolutePath());
-                readLECTURAS.readHeaders();
-
-
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "VERIFIQUE LOS DATOS DEL ARCHIVO.", "ERROR",JOptionPane.ERROR_MESSAGE);
-            }
-
-        } else {
-            error = true;
-            JOptionPane.showMessageDialog(null, "VERIFIQUE LA ESTRUCTURA DEL ARCHIVO.", "ERROR",JOptionPane.ERROR_MESSAGE);
-        }
-    }
-}
