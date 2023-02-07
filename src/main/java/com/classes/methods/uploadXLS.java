@@ -1,366 +1,574 @@
 package com.classes.methods;
 
+import com.app.app;
+import com.aspose.cells.*;
+import com.classes.connection.conexion;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import java.io.File;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import com.csvreader.CsvReader;
-import javafx.scene.control.Alert;
-import javafx.stage.Stage;
-import com.aspose.cells.*;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class uploadXLS {
 
-    boolean error;
+    boolean isError = false;
+    int codeError = 0;
+    String typeError = "";
 
-    public void run(File file, Stage primaryStage) {
-        primaryStage.close();
-        loading load = new loading();
-        load.loader();
+    public void validXLSX(Workbook wbXLSX) {
+        List<List> dataWS1 = new ArrayList<>();
+        List<List> dataWS2 = new ArrayList<>();
+        List<List> dataWS3 = new ArrayList<>();
 
-        try {
-            Workbook wbXLSX = new Workbook(file.getAbsolutePath()); //NUEVO LIBRO EXCEL
-            new Thread(() -> firstSheet(wbXLSX)).run();
-        } catch (Exception e) {
-        } finally {
-            if (error != true) {
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setHeaderText(null);
-                alert.setTitle("Success");
-                alert.setContentText(file.getName()+" SUBIDO CORRECTAMENTE.");
-                alert.showAndWait();
-            }
+        if (wbXLSX.getWorksheets().getCount() == 3) {
+            Worksheet ws1 = wbXLSX.getWorksheets().get(0);
+            Worksheet ws2 = wbXLSX.getWorksheets().get(1);
+            Worksheet ws3 = wbXLSX.getWorksheets().get(2);
+            if (
+            (ws1.getName().equals("IMPRESIÓN") || ws1.getName().equals("IMPRESION") || ws1.getName().equals("IMPRESIONES") || ws1.getName().equals("impresión") || ws1.getName().equals("impresion") || ws1.getName().equals("impresiones") || ws1.getName().equals("IMPRIMIR") || ws1.getName().equals("imprimir")) &&
+            (ws2.getName().equals("SyT") || ws2.getName().equals("syt") || ws2.getName().equals("SYT") || ws2.getName().equals("SYt") || ws2.getName().equals("Syt") || ws2.getName().equals("sYT") || ws2.getName().equals("syT")) &&
+            (ws3.getName().equals("EXCLUIDAS") || ws3.getName().equals("EXCLUIDOS") || ws3.getName().equals("excluidas") || ws3.getName().equals("excluidos") || ws3.getName().equals("EXCLUSIONES") || ws3.getName().equals("exclusiones") || ws3.getName().equals("EXCLUSION") || ws3.getName().equals("EXCLUSIÓN") || ws3.getName().equals("exclusion") || ws3.getName().equals("exclusión"))
+            ) {
+                if (ws1.getCells().getMaxDataColumn()+1 == 17 && ws2.getCells().getMaxDataColumn()+1 == 21 && ws3.getCells().getMaxDataColumn()+1 == 13) {
 
-            load.closeLoader();
-            primaryStage.show();
+                    if (
+                    (ws1.getCells().get(0,1).getType() == 5 && ws1.getCells().get(0,3).getType() == 5 && ws1.getCells().get(0,5).getType() == 5 && ws1.getCells().get(0,7).getType() == 5 && ws1.getCells().get(0,12).getType() == 5 && ws1.getCells().get(0,13).getType() == 5) &&
+                    (ws2.getCells().get(0,1).getType() == 5 && ws2.getCells().get(0,3).getType() == 5 && ws2.getCells().get(0,5).getType() == 5 && ws2.getCells().get(0,7).getType() == 5 && ws2.getCells().get(0,11).getType() == 5 && ws2.getCells().get(0,17).getType() == 5) &&
+                    (ws3.getCells().get(0,1).getType() == 5 && ws3.getCells().get(0,3).getType() == 5 && ws3.getCells().get(0,5).getType() == 5 && ws3.getCells().get(0,7).getType() == 5 && ws3.getCells().get(0,11).getType() == 5)
+                    ) {
+                        if (
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(1)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(3)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(5)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(7)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(12)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(13)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(14)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(1)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(3)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(5)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(7)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(11)+1) &&
+                        (ws2.getCells().getMaxDataRow()+1 == ws2.getCells().getLastDataRow(17)+1) &&
+                        (ws3.getCells().getMaxDataRow()+1 == ws3.getCells().getLastDataRow(1)+1) &&
+                        (ws3.getCells().getMaxDataRow()+1 == ws3.getCells().getLastDataRow(3)+1) &&
+                        (ws3.getCells().getMaxDataRow()+1 == ws3.getCells().getLastDataRow(5)+1) &&
+                        (ws3.getCells().getMaxDataRow()+1 == ws3.getCells().getLastDataRow(7)+1) &&
+                        (ws3.getCells().getMaxDataRow()+1 == ws3.getCells().getLastDataRow(11)+1)
+                        ) {
+                            AtomicBoolean threadsError = new AtomicBoolean(false);
+                            final String[] error = {""};
 
-        }
-    }
+                            String valPorcion = ws1.getCells().get(1,7).getStringValue();
 
-    public void firstSheet(Workbook wbXLSX) {
+                            Thread sheet1 = new Thread(() -> {
+                                String[] errorType = {"","","","","","",""};
 
-        Worksheet wSheet = wbXLSX.getWorksheets().get(0);
-        if ((wSheet.getCells().getMaxDataColumn()+1) == 17) {
-            String[] errorList = {"","","","","","",""};
-            boolean emptyCell = false;
-            try {
-                File firstCSV = new File("files\\impresion.csv");
-                wbXLSX.save(firstCSV.getAbsolutePath());
+                                boolean t1Error = false;
 
-                List<String> data = new ArrayList<>();
+                                List<String> avisos = new ArrayList<>();
+                                List<Integer> pagos = new ArrayList<>();
+                                List<String> tipoSolicitud = new ArrayList<>();
+                                List<String> porcion = new ArrayList<>();
+                                List<String> fecha = new ArrayList<>();
+                                List<String> f_ejecutado = new ArrayList<>();
+                                List<String> f_cierre = new ArrayList<>();
 
-                CsvReader csv = new CsvReader(firstCSV.getAbsolutePath());
-                csv.readHeaders();
+                                DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-                String cuenta_contrato = null;
-                String pagos = null;
-                String tipo_solicitud = null;
-                String fecha = null;
-                String porcion = null;
-                String f_ejecutado = null;
-                String f_cierre = null;
+                                for (int i = 1; i < (ws1.getCells().getLastDataRow(0)+1); i++) {
+                                    if (ws1.getCells().get(i,14).getValue() != null && ws1.getCells().get(i,14).getValue() != "") {
+                                        avisos.add(ws1.getCells().get(i,14).getStringValue());
+                                    } else {
+                                        t1Error = true;
+                                        errorType[0] = "\n• numero de aviso";
+                                    }
 
-                while (csv.readRecord()) {
-                    cuenta_contrato = csv.get(0);
-                    pagos = csv.get(1);
-                    tipo_solicitud = csv.get(3);
-                    porcion = csv.get(7);
+                                    try {
+                                        pagos.add(ws1.getCells().get(i,1).getIntValue());
+                                    } catch (Exception e) {
+                                        t1Error = true;
+                                        errorType[1] = "\n• pagos";
+                                    }
 
-                    DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                    try {
-                        fecha = csv.get(5);
-                        Date date = dateFormat.parse(fecha);
-                        fecha = simpleDateFormat.format(date);
-                    } catch (Exception e) {
-                        errorList[3] = "\n• fecha de programación";
-                        emptyCell = true;
-                    }
-                    try {
-                        f_ejecutado = csv.get(12);
-                        Date date = dateFormat.parse(f_ejecutado);
-                        f_ejecutado = simpleDateFormat.format(date);
-                    } catch (Exception e) {
-                        errorList[5] = "\n• fecha de ejecución";
-                        emptyCell = true;
-                    }
-                    try {
-                        f_cierre = csv.get(13);
-                        Date date = dateFormat.parse(f_cierre);
-                        f_cierre = simpleDateFormat.format(date);
-                    } catch (Exception e) {
-                        errorList[6] = "\n• fecha de cierre"; emptyCell = true;
-                    }
-                    if (cuenta_contrato == "") {errorList[0] = "\n• cuenta contrato"; emptyCell = true;}
-                    if (pagos == "") {errorList[1] = "\n• pagos"; emptyCell = true;}
-                    if (tipo_solicitud == "") {errorList[2] = "\n• tipo de solicitud"; emptyCell = true;}
-                    if (porcion == "") {errorList[4] = "\n• porcion"; emptyCell = true;}
-                }
-                csv.close();
-                if (emptyCell == true) {
-                    error = true;
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setHeaderText(null);
-                    alert.setTitle("Error");
-                    alert.setContentText("VERIFIQUE LOS SIGUIENTES CAMPOS DEL ARCHIVO DE IMPRESIÓN: " + errorList[0] + errorList[1] + errorList[2] + errorList[3] + errorList[4] + errorList[5] + errorList[6]);
-                    alert.showAndWait();
-                }
-            } catch (Exception e) {
-            }
-        } else {
-            error = true;
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setHeaderText(null);
-            alert.setTitle("Error");
-            alert.setContentText("VERIFIQUE LA ESTRUCTURA DEL ARCHIVO DE IMPRESIÓN.");
-            alert.showAndWait();
-        }
-    }
-}
-/*
-            //VALIDAR ESTRUCTURA
-            int valCOLUMN = ws.getCells().getMaxDataColumn(); //RECUENTO DE COLUMNA
-            //SI TIENE 21 COLUMNAS HACER ESTO
-            if ((valCOLUMN+1) == 21) {
-                int valROW1 = ws.getCells().getLastDataRow(0); //RECUENTO DE COLUMNAS
-                int valROW2 = ws.getCells().getMaxDataRow();
-                if (valROW1 == valROW2) {
-                    File fileDATA = new File("files\\Importe.csv"); //CREAR UN NUEVO ARCHIVO EN LA CARPETA files CON EL NOMBRE DE Importe DE TIPO csv
-                    wbXLSX.save("" + fileDATA); //GUARDAR LOS DATOS DEL LIBRO EN EL ARCHIVO csv
-                    String rutaCSV = "" + fileDATA; //GUARDAR RUTA EN UNA VARIABLE
-                    // 2. LEE LOS DATOS DEL ARCHIVO Y LOS GUARDA EN UNA LISTA
-                    List<LECTURAS> DATA; //LISTA CON MODELO DE LECTURAS LLAMADA DATA
-                    DATA = new ArrayList<>(); //NUEVA LISTA DE DATOS DONDE SE GUARDARAN LOS DATOS DEL ARCHIVO
-                    CsvReader readLECTURAS = new CsvReader(rutaCSV);
-                    readLECTURAS.readHeaders();
-                    //CICLO QUE LEE CADA DATO DEL ARCHIVO Y LOS ALMACENA EN LA LISTA
-                    while (readLECTURAS.readRecord()) {
-                        String codigo_porcion = readLECTURAS.get(0);
-                        String uni_lectura = readLECTURAS.get(1);
-                        String doc_lectura = readLECTURAS.get(2);
-                        String cuenta_contrato = readLECTURAS.get(3);
-                        String medidor = readLECTURAS.get(4);
-                        String lectura_ant = readLECTURAS.get(5);
-                        String lectura_act = readLECTURAS.get(6);
-                        String anomalia_1 = readLECTURAS.get(7);
-                        String anomalia_2 = readLECTURAS.get(8);
-                        String codigo_operario = readLECTURAS.get(9);
-                        String vigencia = readLECTURAS.get(10);
-                        //CONVERTIR LOS DATOS RECIBIDOS DE fecha CON FORMATO yyyy/MM/dd HH:mm PARA MEJORAR LA FILTRACION
-                        String fecha = readLECTURAS.get(11);
-                        Calendar gregorianCalendar = new GregorianCalendar();
-                        DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy HH:mm");
-                        Date date = dateFormat.parse(fecha);
-                        gregorianCalendar.setTime(date);
-                        Locale locale = new Locale("es", "EC");
-                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm", locale);
-                        fecha = simpleDateFormat.format(date);
-                        //
-                        String orden_lectura = readLECTURAS.get(12);
-                        String leido = readLECTURAS.get(13);
-                        String calle = readLECTURAS.get(14);
-                        String edificio = readLECTURAS.get(15);
-                        String suplemento_casa = readLECTURAS.get(16);
-                        String interloc_comercial = readLECTURAS.get(17);
-                        String apellido = readLECTURAS.get(18);
-                        String nombre = readLECTURAS.get(19);
-                        String clase_instalacion = readLECTURAS.get(20);
+                                    if (ws1.getCells().get(i,3).getValue() != null && ws1.getCells().get(i,3).getValue() != "" && (ws1.getCells().get(i,3).getValue().equals("SUSPENSION") || ws1.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
+                                        tipoSolicitud.add(ws1.getCells().get(i,3).getStringValue());
+                                    } else {
+                                        t1Error = true;
+                                        errorType[2] = "\n• tipo de solicitud";
+                                    }
 
-                        //SI EL DATO TIENE COMA, ELIMINARLA
-                        codigo_porcion = codigo_porcion.replaceAll(",", "");
-                        uni_lectura = uni_lectura.replaceAll(",", "");
-                        doc_lectura = doc_lectura.replaceAll(",", "");
-                        cuenta_contrato = cuenta_contrato.replaceAll(",", "");
-                        medidor = medidor.replaceAll(",", "");
-                        lectura_ant = lectura_ant.replaceAll(",", "");
-                        lectura_act = lectura_act.replaceAll(",", "");
-                        anomalia_1 = anomalia_1.replaceAll(",", "");
-                        anomalia_2 = anomalia_2.replaceAll(",", "");
-                        codigo_operario = codigo_operario.replaceAll(",", "");
-                        vigencia = vigencia.replaceAll(",", "");
-                        fecha = fecha.replaceAll(",", "");
-                        orden_lectura = orden_lectura.replaceAll(",", "");
-                        leido = leido.replaceAll(",", "");
-                        calle = calle.replaceAll(",", "");
-                        edificio = edificio.replaceAll(",", "");
-                        suplemento_casa = suplemento_casa.replaceAll(",", "");
-                        interloc_comercial = interloc_comercial.replaceAll(",", "");
-                        apellido = apellido.replaceAll(",", "");
-                        nombre = nombre.replaceAll(",", "");
+                                    if (ws1.getCells().get(i,7).getValue() != null && ws1.getCells().get(i,7).getValue() != "" && ws1.getCells().get(i,7).getValue() == valPorcion) {
+                                        porcion.add(ws1.getCells().get(i,7).getStringValue());
+                                    } else {
+                                        t1Error = true;
+                                        errorType[3] = "\n• porcion";
+                                    }
 
-                        if (codigo_porcion == "" || uni_lectura == "" || codigo_operario == "" || vigencia == "") {
-                            dialog.dispose();
-                            JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE QUE LOS CAMPOS CODIGO PORCION, UNI LECTURA, CODIGO OPERARIO O VIGENCIA NO SE ENCUENTREN VACIOS", "", JOptionPane.INFORMATION_MESSAGE);
-                            return;
-                        }
+                                    try {
+                                        String validFecha = ws1.getCells().get(i,5).getStringValue();
+                                        Date date = dateFormat.parse(validFecha);
+                                        validFecha = simpleDateFormat.format(date);
+                                        if (validFecha.length() == 10) {
+                                            fecha.add(validFecha);
+                                        } else {
+                                            t1Error = true;
+                                            errorType[5] = "\n• fecha de programación";
+                                        }
+                                    } catch (Exception e) {
+                                        t1Error = true;
+                                        errorType[4] = "\n• fecha de programación";
+                                    }
 
-                        //SI EL DATO TIENE COMILLAS, ELIMINARLAS
-                        codigo_porcion = codigo_porcion.replaceAll("\"", "");
-                        uni_lectura = uni_lectura.replaceAll("\"", "");
-                        doc_lectura = doc_lectura.replaceAll("\"", "");
-                        cuenta_contrato = cuenta_contrato.replaceAll("\"", "");
-                        medidor = medidor.replaceAll("\"", "");
-                        lectura_ant = lectura_ant.replaceAll("\"", "");
-                        lectura_act = lectura_act.replaceAll("\"", "");
-                        anomalia_1 = anomalia_1.replaceAll("\"", "");
-                        anomalia_2 = anomalia_2.replaceAll("\"", "");
-                        codigo_operario = codigo_operario.replaceAll("\"", "");
-                        vigencia = vigencia.replaceAll("\"", "");
-                        fecha = fecha.replaceAll("\"", "");
-                        orden_lectura = orden_lectura.replaceAll("\"", "");
-                        leido = leido.replaceAll("\"", "");
-                        calle = calle.replaceAll("\"", "");
-                        edificio = edificio.replaceAll("\"", "");
-                        suplemento_casa = suplemento_casa.replaceAll("\"", "");
-                        interloc_comercial = interloc_comercial.replaceAll("\"", "");
-                        apellido = apellido.replaceAll("\"", "");
-                        nombre = nombre.replaceAll("\"", "");
+                                    try {
+                                        String validFecha = ws1.getCells().get(i,12).getStringValue();
+                                        Date date = dateFormat.parse(validFecha);
+                                        validFecha = simpleDateFormat.format(date);
+                                        if (validFecha.length() == 10) {
+                                            f_ejecutado.add(validFecha);
+                                        } else {
+                                            t1Error = true;
+                                            errorType[5] = "\n• fecha de ejecutado";
+                                        }
 
-                        if (codigo_porcion.charAt(0) == 'W' || codigo_porcion.charAt(0) == 'X' || codigo_porcion.charAt(0) == 'Z') {
-                            if (vigencia.charAt(5) == '0') {
-                                codigo_porcion += "-1";
-                            } else {
-                                codigo_porcion += "-2";
-                                StringBuilder nuevaVIGENCIA = new StringBuilder(vigencia);
-                                nuevaVIGENCIA.setCharAt(5,'0');
-                                vigencia = nuevaVIGENCIA.toString();
+                                    } catch (Exception e) {
+                                        t1Error = true;
+                                        errorType[5] = "\n• fecha de ejecutado";
+                                    }
+
+                                    try {
+                                        String validFecha = ws1.getCells().get(i,13).getStringValue();
+                                        Date date = dateFormat.parse(validFecha);
+                                        validFecha = simpleDateFormat.format(date);
+                                        if (validFecha.length() == 10) {
+                                            f_cierre.add(validFecha);
+                                        } else {
+                                            t1Error = true;
+                                            errorType[5] = "\n• fecha de cierre";
+                                        }
+                                    } catch (Exception e) {
+                                        t1Error = true;
+                                        errorType[6] = "\n• fecha de cierre";
+                                    }
+
+                                }
+
+                                if (t1Error != true) {
+                                    dataWS1.add(avisos);
+                                    dataWS1.add(pagos);
+                                    dataWS1.add(tipoSolicitud);
+                                    dataWS1.add(porcion);
+                                    dataWS1.add(fecha);
+                                    dataWS1.add(f_ejecutado);
+                                    dataWS1.add(f_cierre);
+                                } else {
+                                    error[0] += "\n➤ IMPRESIÓN" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + "\n";
+                                    threadsError.set(true);
+                                }
+                            });
+                            Thread sheet2 = new Thread(() -> {
+                                String[] errorType = {"","","","","",""};
+
+                                boolean t2Error = false;
+
+                                List<String> avisos = new ArrayList<>();
+                                List<Integer> pagos = new ArrayList<>();
+                                List<String> tipoSolicitud = new ArrayList<>();
+                                List<String> porcion = new ArrayList<>();
+                                List<Integer> resultado = new ArrayList<>();
+                                List<String> fecha = new ArrayList<>();
+
+                                DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+                                for (int i = 1; i < (ws2.getCells().getLastDataRow(0)+1); i++) {
+                                    if (ws2.getCells().get(i,17).getValue() != null && ws2.getCells().get(i,17).getValue() != "") {
+                                        avisos.add(ws2.getCells().get(i,17).getStringValue());
+                                    } else {
+                                        t2Error = true;
+                                        errorType[0] = "\n• numero de aviso";
+                                    }
+
+                                    try {
+                                        String value = ws2.getCells().get(i,1).getStringValue();
+                                        if (value.equals("#N/A") || value.contains("$-")) {
+                                            pagos.add(0);
+                                        } else {
+                                            pagos.add(ws2.getCells().get(i,1).getIntValue());
+                                        }
+
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                        t2Error = true;
+                                        errorType[1] = "\n• pagos";
+                                    }
+
+                                    if (ws2.getCells().get(i,3).getValue() != null && ws2.getCells().get(i,3).getValue() != "" && (ws2.getCells().get(i,3).getValue().equals("SUSPENSION") || ws2.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
+                                        tipoSolicitud.add(ws2.getCells().get(i,3).getStringValue());
+                                    } else {
+                                        t2Error = true;
+                                        errorType[2] = "\n• tipo de solicitud";
+                                    }
+
+                                    if (ws2.getCells().get(i,7).getValue() != null && ws2.getCells().get(i,7).getValue() != "" && ws2.getCells().get(i,7).getValue() == valPorcion) {
+                                        porcion.add(ws2.getCells().get(i,7).getStringValue());
+                                    } else {
+                                        t2Error = true;
+                                        errorType[3] = "\n• porcion";
+                                    }
+
+                                    try {
+                                        String validFecha = ws2.getCells().get(i,5).getStringValue();
+                                        Date date = dateFormat.parse(validFecha);
+                                        validFecha = simpleDateFormat.format(date);
+                                        fecha.add(validFecha);
+                                    } catch (Exception e) {
+                                        t2Error = true;
+                                        errorType[4] = "\n• fecha de programación";
+                                    }
+
+                                    try {
+                                        resultado.add(ws2.getCells().get(i,11).getIntValue());
+                                    } catch (Exception e) {
+                                        t2Error = true;
+                                        errorType[1] = "\n• resultado";
+                                    }
+
+                                }
+
+                                if (t2Error != true) {
+                                    dataWS2.add(avisos);
+                                    dataWS2.add(pagos);
+                                    dataWS2.add(tipoSolicitud);
+                                    dataWS2.add(porcion);
+                                    dataWS2.add(fecha);
+                                    dataWS2.add(resultado);
+                                } else {
+                                    error[0] += "\n➤ SyT" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + "\n";
+                                    threadsError.set(true);
+                                }
+                            });
+                            Thread sheet3 = new Thread(() -> {
+                                String[] errorType = {"","","","",""};
+
+                                boolean t3Error = false;
+
+                                List<String> avisos = new ArrayList<>();
+                                List<Integer> pagos = new ArrayList<>();
+                                List<String> tipoSolicitud = new ArrayList<>();
+                                List<String> porcion = new ArrayList<>();
+                                List<String> fecha = new ArrayList<>();
+
+                                DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+                                for (int i = 1; i < (ws3.getCells().getLastDataRow(0)+1); i++) {
+                                    if (ws3.getCells().get(i,11).getValue() != null && ws3.getCells().get(i,11).getValue() != "") {
+                                        avisos.add(ws3.getCells().get(i,11).getStringValue());
+                                    } else {
+                                        t3Error = true;
+                                        errorType[0] = "\n• numero de aviso";
+                                    }
+
+                                    try {
+                                        String value = ws3.getCells().get(i,1).getStringValue();
+                                        if (value.equals("#N/A") || value.contains("$-")) {
+                                            pagos.add(0);
+                                        } else {
+                                            pagos.add(ws3.getCells().get(i,1).getIntValue());
+                                        }
+
+                                    } catch (Exception e) {
+                                        t3Error = true;
+                                        errorType[1] = "\n• pagos";
+                                    }
+
+                                    if (ws3.getCells().get(i,3).getValue() != null && ws3.getCells().get(i,3).getValue() != "" && (ws3.getCells().get(i,3).getValue().equals("SUSPENSION") || ws3.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
+                                        tipoSolicitud.add(ws3.getCells().get(i,3).getStringValue());
+                                    } else {
+                                        t3Error = true;
+                                        errorType[2] = "\n• tipo de solicitud";
+                                    }
+
+                                    if (ws3.getCells().get(i,7).getValue() != null && ws3.getCells().get(i,7).getValue() != "" && ws3.getCells().get(i,7).getValue() == valPorcion) {
+                                        porcion.add(ws3.getCells().get(i,7).getStringValue());
+                                    } else {
+                                        t3Error = true;
+                                        errorType[3] = "\n• porcion";
+                                    }
+
+                                    try {
+                                        String validFecha = ws3.getCells().get(i,5).getStringValue();
+                                        Date date = dateFormat.parse(validFecha);
+                                        validFecha = simpleDateFormat.format(date);
+                                        fecha.add(validFecha);
+                                    } catch (Exception e) {
+                                        t3Error = true;
+                                        errorType[4] = "\n• fecha de programación";
+                                    }
+                                }
+
+                                if (t3Error != true) {
+                                    dataWS3.add(avisos);
+                                    dataWS3.add(pagos);
+                                    dataWS3.add(tipoSolicitud);
+                                    dataWS3.add(porcion);
+                                    dataWS3.add(fecha);
+                                } else {
+                                    error[0] += "\n➤ EXCLUIDAS" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + "\n";
+                                    threadsError.set(true);
+                                }
+                            });
+
+                            sheet1.run();
+                            sheet2.run();
+                            sheet3.run();
+
+                            try {
+                                sheet1.join();
+                                sheet2.join();
+                                sheet3.join();
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
                             }
+
+                            if (threadsError.get() != true) {
+                                File impresionCSV = new File("files\\data_Impresion.csv");
+                                File sytCSV = new File("files\\data_SyT.csv");
+                                File excluidasCSV = new File("files\\data_Excluidas.csv");
+
+                                conexion database = new conexion();
+                                Connection con = database.conectarSQL();
+
+                                Thread firstCSV = new Thread(() -> {
+                                    try {
+                                        PrintWriter write = new PrintWriter(impresionCSV);
+
+                                        for (int j = 0; j < dataWS1.get(0).size(); j++) {
+                                            for (int i = 0; i < dataWS1.size(); i++) {
+                                                write.print(dataWS1.get(i).get(j));
+                                                if (i < (dataWS1.size()-1)) {
+                                                    write.print(",");
+                                                } else if (i == (dataWS1.size()-1)) {
+                                                    write.print("\n");
+                                                }
+                                            }
+                                        }
+                                        write.close();
+
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                    }
+
+                                });
+                                Thread secondCSV = new Thread(() -> {
+                                    try {
+                                        PrintWriter write = new PrintWriter(sytCSV);
+
+                                        for (int j = 0; j < dataWS2.get(0).size(); j++) {
+                                            for (int i = 0; i < dataWS2.size(); i++) {
+                                                write.print(dataWS2.get(i).get(j));
+                                                if (i < (dataWS2.size()-1)) {
+                                                    write.print(",");
+                                                } else if (i == (dataWS2.size()-1)) {
+                                                    write.print("," + dataWS1.get(5).get(0) + "," + dataWS1.get(6).get(0) + "\n");
+                                                }
+                                            }
+                                        }
+                                        write.close();
+
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                    }
+                                });
+                                Thread thirdCSV = new Thread(() -> {
+                                    try {
+                                        PrintWriter write = new PrintWriter(excluidasCSV);
+
+                                        for (int j = 0; j < dataWS3.get(0).size(); j++) {
+                                            for (int i = 0; i < dataWS3.size(); i++) {
+                                                write.print(dataWS3.get(i).get(j));
+                                                if (i < (dataWS3.size()-1)) {
+                                                    write.print(",");
+                                                } else if (i == (dataWS3.size()-1)) {
+                                                    write.print("," + dataWS1.get(5).get(0) + "," + dataWS1.get(6).get(0) + "\n");
+                                                }
+                                            }
+                                        }
+                                        write.close();
+
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                    }
+                                });
+
+                                firstCSV.start();
+                                secondCSV.start();
+                                thirdCSV.start();
+
+                                try {
+                                    firstCSV.join();
+                                    secondCSV.join();
+                                    thirdCSV.join();
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+
+                                try {
+                                    File uploadFiles = new File("tools\\shell\\files.txt");
+                                    PrintWriter write = new PrintWriter(uploadFiles);
+                                    write.println(".mode csv");
+                                    write.println(".open '" + new File("tools\\db\\database.db").getAbsolutePath() + "'");
+                                    write.println(".import '" + impresionCSV.getAbsolutePath() + "' IMPRESION");
+                                    write.println(".import '" + sytCSV.getAbsolutePath() + "' SyT");
+                                    write.println(".import '" + excluidasCSV.getAbsolutePath() + "' EXCLUIDAS");
+                                    write.println(".shell del '" + impresionCSV.getAbsolutePath() + "'");
+                                    write.println(".shell del '" + sytCSV.getAbsolutePath() + "'");
+                                    write.println(".shell del '" + excluidasCSV.getAbsolutePath() + "'");
+                                    write.println(".exit");
+                                    write.close();
+
+                                    Process p = Runtime.getRuntime().exec("cmd /c cd " + new File("tools\\shell").getPath() + " && upload.cmd");
+                                    p.getErrorStream().close();
+                                    p.waitFor();
+
+                                    String deleteDate = dataWS1.get(4).get(0).toString();
+                                    try {
+                                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                        Calendar c = Calendar.getInstance();
+                                        c.setTime(dateFormat.parse(deleteDate));
+                                        c.add(Calendar.YEAR, -1);
+                                        deleteDate = dateFormat.format(c.getTime());
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                    }
+
+                                    String[] tables = {"IMPRESION", "SyT", "EXCLUIDAS"};
+                                    for (int i = 0; i < tables.length; i++) {
+                                        PreparedStatement ps = con.prepareStatement("DELETE FROM "+tables[i]+" WHERE (fecha < '"+deleteDate+"');");
+                                        ps.executeUpdate();
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println(e);
+                                }
+                            } else {
+                                typeError = error[0];
+                                isError = true;
+                                codeError = 5;
+                            }
+                        } else {
+                            isError = true;
+                            codeError = 4;
                         }
-                        DATA.add(new LECTURAS(codigo_porcion, uni_lectura, doc_lectura, cuenta_contrato, medidor, lectura_ant, lectura_act, anomalia_1, anomalia_2, codigo_operario, vigencia, fecha, orden_lectura, leido, calle, edificio, suplemento_casa, interloc_comercial, apellido, nombre, clase_instalacion));
-                    }
-                    readLECTURAS.close();
-
-                    //EXTRAER DATOS REPETIDOS DEL ARCHIVO
-                    Set<LECTURAS> repetidos; //SET CON MODELO LECTURAS
-                    repetidos = new HashSet<>(); //HASHSET PARA SACAR LOS REPETIDOS
-                    List<LECTURAS> repetidosFinal; //LISTA CON MODELO LECTURAS
-                    repetidosFinal = DATA.stream().filter(lectura -> !repetidos.add(lectura)).collect(Collectors.toList()); //GUARDAR DATOS REPETIDOS EN LA LISTA
-
-                    boolean fileOPEN = false;
-                    String name = jtxtPATH.getText();
-                    name = name.replaceAll(" ", "_");
-                    File fileNAME = new File(name);
-
-                    //SI HAY REPETIDOS EXPORTARLOS EN UN EXCEL
-                    if (repetidosFinal.size() != 0) {
-                        File fileREPLY = new File("files\\Repetidos.csv"); //ARCHIVO PARA RETORNAR REPETIDOS EN UN ARCHIVO csv
-                        PrintWriter write = new PrintWriter(fileREPLY); //PARA ESCRIBIR LOS DATOS REPETIDOS EN EL NUEVO ARCHIVO
-
-                        String estructura = "CODIGO_PORCION,UNI_LECTURA,DOC_LECTURA,CUENTA_CONTRATO,MEDIDOR,LEC_ANTERIOR,LEC_ACTUAL,ANOMALIA_1,ANOMALIA_2,CODIGO_OPERARIO,VIGENCIA,FECHA,ORDEN LECTURA,LEIDO,CALLE,EDIFICIO,SUPLEMENTO_CASA,INTERLOC_COM,APELLIDO,NOMBRE,CLASE_INSTALA";
-                        write.println(estructura);
-
-                        for (Modelo.LECTURAS LECTURAS : repetidosFinal) {
-                            write.print(LECTURAS.getCodigo_porcion() + ",");
-                            write.print(LECTURAS.getUni_lectura() + ",");
-                            write.print(LECTURAS.getDoc_lectura() + ",");
-                            write.print(LECTURAS.getCuenta_contrato() + ",");
-                            write.print(LECTURAS.getMedidor() + ",");
-                            write.print(LECTURAS.getLectura_ant() + ",");
-                            write.print(LECTURAS.getLectura_act() + ",");
-                            write.print(LECTURAS.getAnomalia_1() + ",");
-                            write.print(LECTURAS.getAnomalia_2() + ",");
-                            write.print(LECTURAS.getCodigo_operario() + ",");
-                            write.print(LECTURAS.getVigencia() + ",");
-                            write.print(LECTURAS.getFecha() + ",");
-                            write.print(LECTURAS.getOrden_lectura() + ",");
-                            write.print(LECTURAS.getLeido() + ",");
-                            write.print(LECTURAS.getCalle() + ",");
-                            write.print(LECTURAS.getEdificio() + ",");
-                            write.print(LECTURAS.getSuplemento_casa() + ",");
-                            write.print(LECTURAS.getInterloc_comercial() + ",");
-                            write.print(LECTURAS.getApellido() + ",");
-                            write.print(LECTURAS.getNombre() + ",");
-                            write.print(LECTURAS.getClase_instalacion());
-                            write.println();
+                    } else {
+                        codeError = 3;
+                        isError = true;
+                        if (ws1.getCells().get(0,1).getType() != 5 || ws1.getCells().get(0,3).getType() != 5 || ws1.getCells().get(0,5).getType() != 5 || ws1.getCells().get(0,7).getType() != 5 || ws1.getCells().get(0,12).getType() != 5 && ws1.getCells().get(0,13).getType() != 5) {
+                            typeError += "\n➤ IMPRESIÓN";
                         }
-                        write.close();
-                        //TRATAR DE CONVERTIR EL ARCHIVO.CSV CON DATOS REPETIDOS EN UN ARCHIVO.XLSX
-                        try {
-                            Workbook wbCSV = new Workbook("files\\Repetidos.csv"); //NUEVO LIBRO DEL ARCHIVO Repetidos
-                            wbCSV.save("files\\REPETIDOS_" + fileNAME.getName(), SaveFormat.XLSX); //GUARDAR DATOS REPETIDOS EN UN ARCHIVO EXCEL
-                        } catch (Exception e) {
-                            fileOPEN = true;
-                            dialog.dispose(); //CERRAR LOADING
-                            JOptionPane.showMessageDialog(null, "ERROR: EL ARCHIVO NO PUEDE SER IMPORTADO PORQUE UN ARCHIVO RELACIONADO A LOS REGISTROS REPETIDOS SE ENCUENTRA ABIERTO", "", JOptionPane.INFORMATION_MESSAGE);
+
+                        if (ws2.getCells().get(0,1).getType() != 5 || ws2.getCells().get(0,3).getType() != 5 || ws2.getCells().get(0,5).getType() != 5 || ws2.getCells().get(0,7).getType() != 5 || ws2.getCells().get(0,11).getType() != 5 || ws2.getCells().get(0,17).getType() != 5) {
+                            typeError += "\n➤ SyT";
                         }
-                        fileREPLY.delete(); //ELIMINAR ARCHIVO DE Repetidos.csv
-                    }
-                    fileDATA.delete(); //ELIMINAR ARCHIVO DE Importe.csv
 
-                    if (fileOPEN != true) {
-                        DATA = DATA.stream().distinct().collect(Collectors.toList()); //GUARDAR DATOS COMPLETOS SIN REPETIDOS
-                        File RutaDATA = new File("files\\Datos.csv"); //ARCHIVO CON LOS DATOS COMPLETOS EN FORMATO csv
-                        PrintWriter writeDATA = new PrintWriter(RutaDATA); //PARA ESCRIBIR LOS DATOS COMPLETOS EN EL NUEVO ARCHIVO
-
-                        for (Modelo.LECTURAS LECTURAS : DATA) {
-                            writeDATA.print(LECTURAS.getCodigo_porcion() + ",");
-                            writeDATA.print(LECTURAS.getUni_lectura() + ",");
-                            writeDATA.print(LECTURAS.getDoc_lectura() + ",");
-                            writeDATA.print(LECTURAS.getCuenta_contrato() + ",");
-                            writeDATA.print(LECTURAS.getMedidor() + ",");
-                            writeDATA.print(LECTURAS.getLectura_ant() + ",");
-                            writeDATA.print(LECTURAS.getLectura_act() + ",");
-                            writeDATA.print(LECTURAS.getAnomalia_1() + ",");
-                            writeDATA.print(LECTURAS.getAnomalia_2() + ",");
-                            writeDATA.print(LECTURAS.getCodigo_operario() + ",");
-                            writeDATA.print(LECTURAS.getVigencia() + ",");
-                            writeDATA.print(LECTURAS.getFecha() + ",");
-                            writeDATA.print(LECTURAS.getOrden_lectura() + ",");
-                            writeDATA.print(LECTURAS.getLeido() + ",");
-                            writeDATA.print(LECTURAS.getCalle() + ",");
-                            writeDATA.print(LECTURAS.getEdificio() + ",");
-                            writeDATA.print(LECTURAS.getSuplemento_casa() + ",");
-                            writeDATA.print(LECTURAS.getInterloc_comercial() + ",");
-                            writeDATA.print(LECTURAS.getApellido() + ",");
-                            writeDATA.print(LECTURAS.getNombre() + ",");
-                            writeDATA.print(LECTURAS.getClase_instalacion());
-                            writeDATA.println();
-                        }
-                        writeDATA.close();
-
-                        // 3. IMPORTAR LISTA DE DATOS A LA BASE DE DATOS
-                        //CREAR ARCHIVO DE COMANDOS CON LAS RUTAS DE LA BASE DE DATOS Y EL ARCHIVO
-                        File RutaCARPETA = new File("lib\\sqlite-tools");
-                        File RutaCOMANDOS = new File("lib\\sqlite-tools\\comandos.txt");
-                        PrintWriter writeCOMANDOS = new PrintWriter(RutaCOMANDOS); //PARA ESCRIBIR EL COMANDO CON LA RUTA DE LOS DATOS
-
-                        //COMANDO (script)
-                        writeCOMANDOS.println(".mode csv");
-                        writeCOMANDOS.println(".open '" + pathDB.getAbsolutePath() + "'");
-                        writeCOMANDOS.println(".import '" + RutaDATA.getAbsolutePath() + "' LECTURAS");
-                        writeCOMANDOS.println(".shell del '" + RutaDATA.getAbsolutePath() + "'");
-                        writeCOMANDOS.close();
-
-                        //LINEA DE COMANDOS EJECUTANDO EL COMANDO (script)
-                        Runtime.getRuntime().exec("cmd /c cd " + RutaCARPETA.getAbsolutePath() + " && script.cmd");
-                        Thread.sleep(2*1000);
-
-                        //RESETEAR LOS DATOS PARA FILTRAR Y GENERAR INFORME E INICIAR METODO INIT
-                        jpSCROLL_CODPOR.removeAll();
-                        puMENU_CODPOR.removeAll();
-                        jpSCROLL_RUTAS.removeAll();
-                        puMENU_RUTAS.removeAll();
-                        jpSCROLL_CODOPE.removeAll();
-                        puMENU_CODOPE.removeAll();
-                        jpSCROLL_VIG.removeAll();
-                        puMENU_VIG.removeAll();
-                        new Thread (()-> INIT()).run();
-
-                        JOptionPane.showMessageDialog(null, "SE IMPORTO CORRECTAMENTE " + DATA.size() + " REGISTROS DE " + fileNAME.getName(), "", JOptionPane.INFORMATION_MESSAGE);
-                        if (repetidosFinal.size() != 0) {
-                            JOptionPane.showMessageDialog(null, "SE ENCONTRARON " + repetidosFinal.size() + " REGISTROS REPETIDOS EN " + fileNAME.getName(), "", JOptionPane.INFORMATION_MESSAGE);
-                            File rutaARCHIVOS = new File("files");
-                            Runtime.getRuntime().exec("cmd /c start " + rutaARCHIVOS.getAbsolutePath() + "\\REPETIDOS_" + fileNAME.getName() + " && exit");
+                        if ((ws3.getCells().get(0,1).getType() != 5 || ws3.getCells().get(0,3).getType() != 5 || ws3.getCells().get(0,5).getType() != 5 || ws3.getCells().get(0,7).getType() != 5 || ws3.getCells().get(0,11).getType() != 5)) {
+                            typeError += "\n➤ EXCLUIDAS";
                         }
                     }
                 } else {
-                    dialog.dispose(); //CERRAR LOADING
-                    JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE LOS DATOS DEL ARCHIVO", "",JOptionPane.INFORMATION_MESSAGE); //MENSAJE DE ERROR POR DATOS MAL ESCRITOS EN ALGUNAS COLUMNAS
+                    codeError = 3;
+                    isError = true;
+                    if (ws1.getCells().getMaxDataColumn()+1 != 17) {
+                        typeError += "\n➤ IMPRESIÓN";
+                    }
+                    if (ws2.getCells().getMaxDataColumn()+1 != 21) {
+                        typeError += "\n➤ SyT";
+                    }
+                    if (ws3.getCells().getMaxDataColumn()+1 != 13) {
+                        typeError += "\n➤ EXCLUIDAS";
+                    }
                 }
             } else {
-                dialog.dispose(); //CERRAR LOADING
-                JOptionPane.showMessageDialog(null, "ERROR: VERIFIQUE LA ESTRUCTURA DEL ARCHIVO", "",JOptionPane.INFORMATION_MESSAGE); //MENSAJE DE ERROR POR LA ESTRUCTURA DEL ARCHIVO
-            }*/
+                codeError = 2;
+                isError = true;
+            }
+        } else {
+            codeError = 1;
+            isError = true;
+        }
+    }
+
+    public void upload (File file, Stage initStage, TextField tf) {
+        try {
+            Workbook wbXLSX = new Workbook(file.getAbsolutePath());
+            new Thread (() -> {validXLSX(wbXLSX);}).run();
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setHeaderText(null);
+            alert.setTitle("Error");
+            alert.setContentText("ERROR DESCONOCIDO.\n\nLog: " + e);
+            alert.showAndWait();
+        }
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                new loading(initStage);
+                Stage primaryStage = new Stage();
+                new app().start(primaryStage);
+
+                if (isError != true) {
+                    tf.setText(null);
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Success");
+                    alert.setContentText(file.getName()+" SUBIDO CORRECTAMENTE.");
+                    alert.showAndWait();
+                } else {
+                    if (codeError == 1) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setHeaderText(null);
+                        alert.setTitle("Error");
+                        alert.setContentText("ARCHIVO INVALIDO.");
+                        alert.showAndWait();
+                    } else if (codeError == 2) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setHeaderText(null);
+                        alert.setTitle("Error");
+                        alert.setContentText("VERIFIQUE QUE SEA UN ACTA VALIDA CON LAS HOJAS CORRESPONDIENTES Y EL SIGUIENTE ORDEN: \n\n1) IMPRESION\n2) SyT \n3) EXCLUIDAS");
+                        alert.showAndWait();
+                    } else if (codeError == 3) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setHeaderText(null);
+                        alert.setTitle("Error");
+                        alert.setContentText("VERIFIQUE LA ESTRUCTURA DE LA(s) HOJA(s):\n" + typeError);
+                        alert.showAndWait();
+                    } else if (codeError == 4) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setHeaderText(null);
+                        alert.setTitle("Error");
+                        alert.setContentText("VERIFIQUE LOS DATOS DEL ARCHIVO.");
+                        alert.showAndWait();
+                    } else if (codeError == 5) {
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setHeaderText(null);
+                        alert.setTitle("Error");
+                        alert.setContentText("VERIFIQUE LOS SIGUIENTES CAMPOS:\n" + typeError);
+                        alert.showAndWait();
+                    }
+                }
+            }
+        });
+    }
+}

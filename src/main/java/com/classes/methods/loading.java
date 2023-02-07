@@ -12,30 +12,29 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 public class loading {
-    final Stage initStage = new Stage();
+    public loading(Stage initStage) {
+        if (initStage.isShowing() != true) {
+            ImageView loadGifView = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("media/loader.gif")));
+            Pane splashLayout = new Pane();
+            splashLayout.getChildren().add(loadGifView);
+            Group group = new Group();
+            group.getChildren().add(splashLayout);
+            group.setStyle("-fx-background-color: transparent");
 
-    public void loader() {
-        ImageView loadGifView = new ImageView(new Image(getClass().getClassLoader().getResourceAsStream("media/loader.gif")));
-        Pane splashLayout = new Pane();
-        splashLayout.getChildren().add(loadGifView);
-        Group group = new Group();
-        group.getChildren().add(splashLayout);
-        group.setStyle("-fx-background-color: transparent");
-        Scene successScene = new Scene(group, 256, 256);
-        successScene.setFill(Color.TRANSPARENT);
-        initStage.setTitle("Cargando");
-        initStage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("media/icon.png")));
-        initStage.setScene(successScene);
-        initStage.initStyle(StageStyle.TRANSPARENT);
-        initStage.show();
+            Scene successScene = new Scene(group, 256, 256);
+            successScene.setFill(Color.TRANSPARENT);
 
-        Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
-        initStage.setX((primScreenBounds.getWidth() - initStage.getWidth()) / 2);
-        initStage.setY((primScreenBounds.getHeight() - initStage.getHeight()) / 2);
+            initStage.setTitle("Cargando");
+            initStage.getIcons().add(new Image(getClass().getClassLoader().getResourceAsStream("media/icon.png")));
+            initStage.setScene(successScene);
+            initStage.initStyle(StageStyle.TRANSPARENT);
+            initStage.show();
+
+            Rectangle2D primScreenBounds = Screen.getPrimary().getVisualBounds();
+            initStage.setX((primScreenBounds.getWidth() - initStage.getWidth()) / 2);
+            initStage.setY((primScreenBounds.getHeight() - initStage.getHeight()) / 2);
+        } else {
+            initStage.close();
+        }
     }
-
-    public void closeLoader() {
-       initStage.close();
-    }
-
 }

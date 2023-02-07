@@ -1,16 +1,15 @@
 package com.app;
 
-import com.classes.methods.uploadXLS;
-import javafx.application.Application;
+import com.classes.connection.conexion;
+import com.classes.methods.*;
 
-import javax.swing.*;
+import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -24,6 +23,11 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.event.EventHandler;
 import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class app extends Application {
 
@@ -85,7 +89,7 @@ public class app extends Application {
         selectLabel.relocate(75,55);
         layout.getChildren().add(selectLabel);
 
-        TextField tf = new TextField();
+        TextField tf = new TextField(null);
         tf.setEditable(false);
         tf.setPrefSize(300,10);
         tf.relocate(55,105);
@@ -113,11 +117,96 @@ public class app extends Application {
         uploadButton.relocate(385,105);
         layout.getChildren().add(uploadButton);
         uploadButton.setOnAction(event -> {
-            if (file[1] != null) {
-                uploadXLS upload = new uploadXLS();
-                upload.run(file[1], primaryStage);
+            if (tf.getText() != null && tf.getText() != "") {
+                primaryStage.close();
+
+                Stage initStage = new Stage();
+                new loading(initStage);
+
+                uploadXLS classUpload = new uploadXLS();
+                new Thread (() -> {
+                    classUpload.upload(file[1], initStage, tf);
+                }).start();
+
             } else {
-                JOptionPane.showMessageDialog(null, "SELECCIONE UN ARCHIVO", "Error",JOptionPane.ERROR_MESSAGE); //MENSAJE DE ERROR POR DATOS MAL ESCRITOS EN ALGUNAS COLUMNAS
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setHeaderText(null);
+                alert.setTitle("Error");
+                alert.setContentText("SELECCIONE UN ARCHIVO.");
+                alert.showAndWait();
+            }
+        });
+
+        Label filterLabel = new Label("FILTRE UNA FECHA");
+        filterLabel.setFont(new Font("Cooper Black", 26));
+        filterLabel.setTextFill(Color.web("#FFFFFF"));
+        filterLabel.relocate(100,150);
+        layout.getChildren().add(filterLabel);
+
+        ObservableList<String> optionsMonth = FXCollections.observableArrayList("1 - ENERO", "2 - FEBRERO", "3 - MARZO", "4 - ABRIL", "5 - MAYO", "6 - JUNIO", "7 - JULIO", "8 - AGOSTO", "9 - SEPTIEMBRE", "10 - OCTUBRE", "11 - NOVIEMBRE", "12 - DICIEMBRE");
+        final ComboBox comboMonth = new ComboBox(optionsMonth);
+        comboMonth.setPrefSize(175,10);
+        comboMonth.relocate(55,195);
+        comboMonth.setPromptText("SELECCIONAR MES");
+        layout.getChildren().add(comboMonth);
+
+        conexion database = new conexion();
+        Connection con = database.conectarSQL();
+
+        List<String> years = new ArrayList<>();
+        try {
+            PreparedStatement ps = con.prepareStatement("SELECT DISTINCT strftime('%Y', f_cierre) f_cierre FROM IMPRESION ORDER BY f_cierre DESC");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String year = rs.getString("f_cierre");
+                years.add(year);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+        ObservableList<String> optionsYear = FXCollections.observableArrayList(new ArrayList<>(years));
+        final ComboBox comboYear = new ComboBox(optionsYear);
+        comboYear.setPrefSize(177,10);
+        comboYear.relocate(235,195);
+        comboYear.setPromptText("SELECCIONAR AÑO");
+        layout.getChildren().add(comboYear);
+
+        Button generateButton = new Button("GENERAR INFORME");
+        generateButton.relocate(55,260);
+        generateButton.setPrefSize(360,50);
+        layout.getChildren().add(generateButton);
+        generateButton.setOnAction(event -> {
+            if (comboMonth.getSelectionModel().getSelectedIndex() != -1 && comboYear.getSelectionModel().getSelectedIndex() != -1) {
+                primaryStage.close();
+
+                Stage initStage = new Stage();
+                new loading(initStage);
+
+                new Thread (() -> {
+                    generateXLS gen = new generateXLS();
+                    gen.generate(initStage, comboMonth.getValue().toString(), comboYear.getValue().toString());
+                }).start();
+            } else {
+                if (comboMonth.getSelectionModel().getSelectedIndex() == -1 && comboYear.getSelectionModel().getSelectedIndex() != -1) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Error");
+                    alert.setContentText("NO SE HA SELECCIONADO UN MES.");
+                    alert.showAndWait();
+                } else if (comboMonth.getSelectionModel().getSelectedIndex() != -1 && comboYear.getSelectionModel().getSelectedIndex() == -1) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Error");
+                    alert.setContentText("NO SE HA SELECCIONADO UN AÑO.");
+                    alert.showAndWait();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Error");
+                    alert.setContentText("NO SE HA SELECCIONADO MES Y AÑO.");
+                    alert.showAndWait();
+                }
             }
         });
 
