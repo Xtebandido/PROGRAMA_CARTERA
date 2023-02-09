@@ -124,9 +124,17 @@ public class app extends Application {
                 new loading(initStage);
 
                 uploadXLS classUpload = new uploadXLS();
-                new Thread (() -> {
-                    classUpload.upload(file[1], initStage, tf);
-                }).start();
+                try {
+                    new Thread(() -> {
+                        classUpload.upload(file[1], initStage, tf);
+                    }).start();
+                } catch (Exception e) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setHeaderText(null);
+                    alert.setTitle("Error");
+                    alert.setContentText("ERROR DESCONOCIDO.\n\nLog: " + e);
+                    alert.showAndWait();
+                }
 
             } else {
                 Alert alert = new Alert(Alert.AlertType.ERROR);

@@ -26,11 +26,184 @@ public class uploadXLS {
     String typeError = "";
 
     public void validXLSX(Workbook wbXLSX) {
-        List<List> dataWS1 = new ArrayList<>();
-        List<List> dataWS2 = new ArrayList<>();
-        List<List> dataWS3 = new ArrayList<>();
+        if (wbXLSX.getWorksheets().getCount() == 1) {
+            List<List> dataWS1 = new ArrayList<>();
 
-        if (wbXLSX.getWorksheets().getCount() == 3) {
+            Worksheet ws1 = wbXLSX.getWorksheets().get(0);
+            if ((ws1.getName().equals("Reinstalaciones") || ws1.getName().equals("reinstalaciones") || ws1.getName().equals("REINSTALACIONES") || ws1.getName().equals("REINSTALACIÓN") || ws1.getName().equals("REINSTALACION") || ws1.getName().equals("reinstalacion") || ws1.getName().equals("Reinstalación")))
+            {
+                if (ws1.getCells().getMaxDataColumn()+1 == 18) {
+                    if (ws1.getCells().get(0,2).getType() == 5 && ws1.getCells().get(0,4).getType() == 5 && ws1.getCells().get(0,10).getType() == 5 && ws1.getCells().get(0,16).getType() == 5 && ws1.getCells().get(0,17).getType() == 5) {
+                        if (
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(2)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(4)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(10)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(16)+1) &&
+                        (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(17)+1)
+                        ) {
+                            boolean error = false;
+                            String[] errorType = {"","","","","", ""};
+
+                            List<String> avisos = new ArrayList<>();
+                            List<String> porcion = new ArrayList<>();
+                            List<String> tipoSolicitud = new ArrayList<>();
+                            List<String> fecha = new ArrayList<>();
+                            List<Integer> resultado = new ArrayList<>();
+                            List<String> f_cierre = new ArrayList<>();
+
+                            DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
+                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+                            for (int i = 1; i < (ws1.getCells().getLastDataRow(0)+1); i++) {
+                                if (ws1.getCells().get(i,17).getValue() != null && ws1.getCells().get(i,17).getValue() != "" && ws1.getCells().get(i,17).getStringValue().contains("CX")) {
+                                    avisos.add(ws1.getCells().get(i,17).getStringValue());
+                                } else {
+                                    error = true;
+                                    errorType[0] = "\n• numero de aviso";
+                                }
+
+                                if (ws1.getCells().get(i,2).getValue() != null && ws1.getCells().get(i,2).getValue() != "" && (ws1.getCells().get(i,2).getValue().equals("REINSTALACION"))) {
+                                    tipoSolicitud.add(ws1.getCells().get(i,2).getStringValue());
+                                } else {
+                                    error = true;
+                                    errorType[1] = "\n• tipo de solicitud";
+                                }
+
+                                if (ws1.getCells().get(i,6).getValue() != null && ws1.getCells().get(i,6).getValue() != "") {
+                                    porcion.add(ws1.getCells().get(i,6).getStringValue());
+                                } else {
+                                    error = true;
+                                    errorType[2] = "\n• porcion";
+                                }
+
+                                try {
+                                    String validFecha = ws1.getCells().get(i,4).getStringValue();
+                                    Date date = dateFormat.parse(validFecha);
+                                    validFecha = simpleDateFormat.format(date);
+                                    if (validFecha.length() == 10) {
+                                        fecha.add(validFecha);
+                                    } else {
+                                        error = true;
+                                        errorType[3] = "\n• fecha de programación";
+                                    }
+                                } catch (Exception e) {
+                                    error = true;
+                                    errorType[3] = "\n• fecha de programación";
+                                }
+
+                                try {
+                                    resultado.add(ws1.getCells().get(i,10).getIntValue());
+                                } catch (Exception e) {
+                                    error = true;
+                                    errorType[4] = "\n• resultado";
+                                }
+
+                                try {
+                                    String validFecha = ws1.getCells().get(i,16).getStringValue();
+                                    Date date = dateFormat.parse(validFecha);
+                                    validFecha = simpleDateFormat.format(date);
+                                    if (validFecha.length() == 10) {
+                                        f_cierre.add(validFecha);
+                                    } else {
+                                        error = true;
+                                        errorType[5] = "\n• fecha de cierre";
+                                    }
+                                } catch (Exception e) {
+                                    error = true;
+                                    errorType[5] = "\n• fecha de cierre";
+                                }
+                            }
+
+                            if (error != true) {
+                                dataWS1.add(avisos);
+                                dataWS1.add(porcion);
+                                dataWS1.add(tipoSolicitud);
+                                dataWS1.add(resultado);
+                                dataWS1.add(fecha);
+                                dataWS1.add(f_cierre);
+
+                                File reinstalacionesCSV = new File("files\\data_Reinstalaciones.csv");
+
+                                try {
+                                    PrintWriter write = new PrintWriter(reinstalacionesCSV);
+                                    for (int j = 0; j < dataWS1.get(0).size(); j++) {
+                                        for (int i = 0; i < dataWS1.size(); i++) {
+                                            write.print(dataWS1.get(i).get(j));
+                                            if (i < (dataWS1.size()-1)) {
+                                                write.print(",");
+                                            } else if (i == (dataWS1.size()-1)) {
+                                                write.print("\n");
+                                            }
+                                        }
+                                    }
+                                    write.close();
+
+                                    File uploadFiles = new File("tools\\shell\\files.txt");
+                                    write = new PrintWriter(uploadFiles);
+                                    write.println(".mode csv");
+                                    write.println(".open '" + new File("tools\\db\\database.db").getAbsolutePath() + "'");
+                                    write.println(".import '" + reinstalacionesCSV.getAbsolutePath() + "' REINSTALACIONES");
+                                    write.println(".shell del '" + reinstalacionesCSV.getAbsolutePath() + "'");
+                                    write.println(".exit");
+                                    write.close();
+
+                                    Process p = Runtime.getRuntime().exec("cmd /c cd " + new File("tools\\shell").getPath() + " && upload.cmd");
+                                    p.getErrorStream().close();
+                                    p.waitFor();
+
+                                    String deleteDate = dataWS1.get(4).get(0).toString();
+                                    try {
+                                        dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                        Calendar c = Calendar.getInstance();
+                                        c.setTime(dateFormat.parse(deleteDate));
+                                        c.add(Calendar.YEAR, -1);
+                                        deleteDate = dateFormat.format(c.getTime());
+                                    } catch (Exception e) {
+                                        System.out.println(e);
+                                    }
+
+                                    conexion database = new conexion();
+                                    Connection con = database.conectarSQL();
+
+                                    PreparedStatement ps = con.prepareStatement("DELETE FROM REINSTALACIONES WHERE (fecha < '"+deleteDate+"');");
+                                    ps.executeUpdate();
+
+                                } catch (Exception e) {
+                                    System.out.println(e);
+                                }
+
+
+                            } else {
+                                typeError += "\n➤ IMPRESIÓN" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + "\n";
+                                isError = true;
+                                codeError = 5;
+                            }
+
+                        } else {
+                            isError = true;
+                            codeError = 4;
+                        }
+                    } else {
+                        codeError = 3;
+                        isError = true;
+                        typeError += "\n➤ REINSTALACIONES";
+                    }
+                } else {
+                    codeError = 3;
+                    isError = true;
+                    typeError += "\n➤ REINSTALACIONES";
+                }
+            } else {
+                codeError = 2;
+                isError = true;
+                typeError = "\n\n1) REINSTALACIONES";
+            }
+
+        } else if (wbXLSX.getWorksheets().getCount() == 3) {
+            List<List> dataWS1 = new ArrayList<>();
+            List<List> dataWS2 = new ArrayList<>();
+            List<List> dataWS3 = new ArrayList<>();
+
             Worksheet ws1 = wbXLSX.getWorksheets().get(0);
             Worksheet ws2 = wbXLSX.getWorksheets().get(1);
             Worksheet ws3 = wbXLSX.getWorksheets().get(2);
@@ -348,9 +521,6 @@ public class uploadXLS {
                                 File sytCSV = new File("files\\data_SyT.csv");
                                 File excluidasCSV = new File("files\\data_Excluidas.csv");
 
-                                conexion database = new conexion();
-                                Connection con = database.conectarSQL();
-
                                 Thread firstCSV = new Thread(() -> {
                                     try {
                                         PrintWriter write = new PrintWriter(impresionCSV);
@@ -454,6 +624,9 @@ public class uploadXLS {
                                         System.out.println(e);
                                     }
 
+                                    conexion database = new conexion();
+                                    Connection con = database.conectarSQL();
+
                                     String[] tables = {"IMPRESION", "SyT", "EXCLUIDAS"};
                                     for (int i = 0; i < tables.length; i++) {
                                         PreparedStatement ps = con.prepareStatement("DELETE FROM "+tables[i]+" WHERE (fecha < '"+deleteDate+"');");
@@ -502,6 +675,7 @@ public class uploadXLS {
             } else {
                 codeError = 2;
                 isError = true;
+                typeError = "\n\n1) IMPRESION\n2) SyT \n3) EXCLUIDAS";
             }
         } else {
             codeError = 1;
@@ -512,13 +686,9 @@ public class uploadXLS {
     public void upload (File file, Stage initStage, TextField tf) {
         try {
             Workbook wbXLSX = new Workbook(file.getAbsolutePath());
-            new Thread (() -> {validXLSX(wbXLSX);}).run();
+            new Thread(() -> {validXLSX(wbXLSX);}).run();
         } catch (Exception e) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setHeaderText(null);
-            alert.setTitle("Error");
-            alert.setContentText("ERROR DESCONOCIDO.\n\nLog: " + e);
-            alert.showAndWait();
+            System.out.println(e);
         }
 
         Platform.runLater(new Runnable() {
@@ -546,7 +716,7 @@ public class uploadXLS {
                         Alert alert = new Alert(Alert.AlertType.WARNING);
                         alert.setHeaderText(null);
                         alert.setTitle("Error");
-                        alert.setContentText("VERIFIQUE QUE SEA UN ACTA VALIDA CON LAS HOJAS CORRESPONDIENTES Y EL SIGUIENTE ORDEN: \n\n1) IMPRESION\n2) SyT \n3) EXCLUIDAS");
+                        alert.setContentText("VERIFIQUE QUE SEA UN ACTA VALIDA CON LAS HOJAS CORRESPONDIENTES Y EL SIGUIENTE ORDEN: " + typeError);
                         alert.showAndWait();
                     } else if (codeError == 3) {
                         Alert alert = new Alert(Alert.AlertType.WARNING);

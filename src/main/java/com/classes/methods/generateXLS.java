@@ -87,6 +87,15 @@ public class generateXLS {
             dataSuspensiones.add(new ArrayList<>());
             dataTaponamientos.add(new ArrayList<>());
         }
+        List<List<String>> dataReinstalaciones = new ArrayList<>();
+        for (int i = 1; i <= 6; i++) {
+            dataReinstalaciones.add(new ArrayList<>());
+        }
+
+        List<List<String>> dataPorcionXreinstalaciones = new ArrayList<>();
+        for (int i = 1; i <= 2; i++) {
+            dataPorcionXreinstalaciones.add(new ArrayList<>());
+        }
 
         try {
             PreparedStatement ps = con.prepareStatement(querySuspensiones);
@@ -127,6 +136,52 @@ public class generateXLS {
                 dataTaponamientos.get(13).add(rs.getString("valor_cartera_excluida"));
             }
 
+            ps = con.prepareStatement("SELECT DISTINCT (fecha) reinstalacion, (f_cierre) cargue FROM REINSTALACIONES WHERE (f_cierre BETWEEN '"+anio+"-"+mes+"-01' AND '"+anio+"-"+mes+"-31')");
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                dataReinstalaciones.get(0).add(rs.getString("reinstalacion"));
+                dataReinstalaciones.get(1).add(rs.getString("cargue"));
+            }
+
+            String queryReinstalaciones = "";
+            for (int i = 0; i < dataReinstalaciones.get(0).size(); i++) {
+                queryReinstalaciones += "SELECT (SELECT count() FROM REINSTALACIONES WHERE (fecha = '"+dataReinstalaciones.get(0).get(i)+"' AND f_cierre = '"+dataReinstalaciones.get(1).get(i)+"')) total, (SELECT count() FROM REINSTALACIONES WHERE (fecha = '"+dataReinstalaciones.get(0).get(i)+"' AND f_cierre = '"+dataReinstalaciones.get(1).get(i)+"' AND resultado = 1)) efectivas, (SELECT count() FROM REINSTALACIONES WHERE (fecha = '"+dataReinstalaciones.get(0).get(i)+"' AND f_cierre = '"+dataReinstalaciones.get(1).get(i)+"' AND resultado != 1)) inefectivas";
+
+                if (i < (dataReinstalaciones.get(0).size()-1)) {
+                    queryReinstalaciones += " UNION ";
+                }
+            }
+
+            ps = con.prepareStatement(queryReinstalaciones);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                dataReinstalaciones.get(2).add("");
+                dataReinstalaciones.get(3).add(rs.getString("total"));
+                dataReinstalaciones.get(4).add(rs.getString("efectivas"));
+                dataReinstalaciones.get(5).add(rs.getString("inefectivas"));
+            }
+
+            String queryPorcionXreinstalacion = "";
+            for (char cell = 'A'; cell <= 'Z'; cell++) {
+                if (cell == 'I' || cell == 'O' || cell == 'Y') {
+                    cell++;
+                }
+                queryPorcionXreinstalacion += "SELECT ('"+ cell +"4') porcion, (count(*)) total FROM REINSTALACIONES WHERE (porcion = '"+cell+"4' AND f_cierre BETWEEN '"+anio+"-"+mes+"-01' AND '"+anio+"-"+mes+"-31') ";
+
+                if (cell != 'Z') {
+                    queryPorcionXreinstalacion += " UNION ";
+                }
+            }
+
+            ps = con.prepareStatement(queryPorcionXreinstalacion);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                dataPorcionXreinstalaciones.get(0).add(rs.getString("porcion"));
+                dataPorcionXreinstalaciones.get(1).add(rs.getString("total"));
+            }
+
+            con.close();
+
             try {
                 Workbook wb = new Workbook();
                 String fileMes = "";
@@ -149,11 +204,11 @@ public class generateXLS {
                 cells.setColumnWidth(4, 13.71); //E
                 cells.setColumnWidth(5, 10.43); //F
                 cells.setColumnWidth(6, 17); //G
-                cells.setColumnWidth(7, 16); //H
+                cells.setColumnWidth(7, 19.57); //H
                 cells.setColumnWidth(8, 10.14); //I
-                cells.setColumnWidth(9, 6.57); //J
-                cells.setColumnWidth(10, 11.86); //K
-                cells.setColumnWidth(11, 12.57); //L
+                cells.setColumnWidth(9, 7.86); //J
+                cells.setColumnWidth(10, 10.86); //K
+                cells.setColumnWidth(11, 11.57); //L
                 cells.setColumnWidth(12, 21.14); //M
                 cells.setColumnWidth(13, 21); //N
                 cells.setColumnWidth(14, 13.86); //O
@@ -170,70 +225,6 @@ public class generateXLS {
                 flag.setAlignments(true);
                 flag.setCellShading(true);
                 flag.setFont(true);
-
-                //TITULO
-                wsInforme.getCells().get("B2").setValue("INFORME DUNNING " + fileMes + " " + anio);
-                style.getFont().setSize(28);
-                style.getFont().setBold(true);
-                style.setForegroundColor(Color.fromArgb(0,176,240));
-                style.setPattern(BackgroundType.SOLID);
-                style.setHorizontalAlignment(TextAlignmentType.CENTER);
-                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.MEDIUM);
-                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.MEDIUM);
-                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.MEDIUM);
-                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.MEDIUM);
-                range = wsInforme.getCells().createRange("B2:Q2");
-                range.applyStyle(style, flag);
-                wsInforme.getCells().merge(1,1,1,16);
-                style = new Style();
-
-                //BORDE SUPERIOR
-                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                range = wsInforme.getCells().createRange("C4:P4");
-                range.applyStyle(style, flag);
-                style = new Style();
-
-                //ESQUINA SUPERIOR IZQUIERDA
-                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                wsInforme.getCells().get("B4").setStyle(style);
-                style = new Style();
-
-                //ESQUINA SUPERIOR DERECHA
-                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                wsInforme.getCells().get("Q4").setStyle(style);
-                style = new Style();
-
-                //BORDE IZQUIERDO
-                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                range = wsInforme.getCells().createRange("B5:B69");
-                range.applyStyle(style, flag);
-                style = new Style();
-
-                //BORDE DERECHO
-                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                range = wsInforme.getCells().createRange("Q5:Q69");
-                range.applyStyle(style, flag);
-                style = new Style();
-
-                //ESQUINA INFERIOR IZQUIERDA
-                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                wsInforme.getCells().get("B70").setStyle(style);
-                style = new Style();
-
-                //ESQUINA INFERIOR DERECHA
-                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                wsInforme.getCells().get("Q70").setStyle(style);
-                style = new Style();
-
-                //BORDE INFERIOR
-                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
-                range = wsInforme.getCells().createRange("C70:P70");
-                range.applyStyle(style, flag);
-                style = new Style();
 
                 //TABLA SUSPENSION
                 wsInforme.getCells().get("C5").setValue("SUSPENSIONES");
@@ -591,7 +582,7 @@ public class generateXLS {
 
                     wsInforme.getCells().get("" + c + "" + (8 + list)).setStyle(style);
 
-                    if (value < 16) {
+                    if (value < 13) {
                         value++;
                     }
 
@@ -835,6 +826,7 @@ public class generateXLS {
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
                 style.setHorizontalAlignment(TextAlignmentType.CENTER);
                 style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
@@ -983,6 +975,17 @@ public class generateXLS {
                 style.setNumber(9);
                 wsInforme.getCells().get("F" + (14 + (list+1))).setStyle(style);
                 wsInforme.getCells().merge((13+(list+1)),5,1,3);
+                style = new Style();
+                //OBSERVACION
+                wsInforme.getCells().get("I" + (10 + (list+1))).setValue("OBSERVACIÓN: ");
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("I"+(10 + (list+1))+":P" + (14 + (list+1)));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((9+(list+1)),8,5,8);
                 style = new Style();
 
                 //TABLA TAPONAMIENTOS
@@ -1222,15 +1225,13 @@ public class generateXLS {
                 style = new Style();
 
                 //DATA
-                int iterador = 17 + list+1;
+                int list2 = 17 + list+1;
                 list = 0;
                 value = 0;
 
                 dunning = Calendar.getInstance();
                 cierre = Calendar.getInstance();
                 f_error = false;
-
-
 
                 for (c = 'C'; c <= 'P'; c++) {
                     style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
@@ -1240,7 +1241,7 @@ public class generateXLS {
                     style.setHorizontalAlignment(TextAlignmentType.CENTER);
 
                     if (value == 0) {
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(dataTaponamientos.get(value).get(list));
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(dataTaponamientos.get(value).get(list));
                     } else if (value == 1) {
                         String fecha = dataTaponamientos.get(1).get(list);
                         if (fecha != null) {
@@ -1252,11 +1253,11 @@ public class generateXLS {
 
                             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("d/MM/yyyy");
                             fecha = simpleDateFormat.format(date);
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(fecha);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(fecha);
 
                         } else {
                             f_error = true;
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue("");
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue("");
                         }
                     } else if (value == 2) {
                         String fecha = dataTaponamientos.get(2).get(list);
@@ -1269,10 +1270,10 @@ public class generateXLS {
 
                             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("d/MM/yyyy");
                             fecha = simpleDateFormat.format(date);
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(fecha);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(fecha);
                         } else {
                             f_error = true;
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue("");
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue("");
                         }
                     } else if (value == 3) {
                         int days = 0;
@@ -1285,67 +1286,67 @@ public class generateXLS {
                         }
                         days--;
                         }
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(days);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(days);
                     }
                     else if (value == 4) {
                         int total_suspensiones = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(total_suspensiones);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(total_suspensiones);
                     } else if (value == 5) {
                         try {
                             int valor_total_cartera = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(valor_total_cartera);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(valor_total_cartera);
                             style.setNumber(5);
                         } catch (Exception e) {
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(0);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(0);
                             style.setNumber(5);
                         }
                     } else if (value == 6) {
                         int efectivas = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(efectivas);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(efectivas);
                     } else if (value == 7) {
                         int pagos = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(pagos);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(pagos);
                     } else if (value == 8) {
                         int conserva_estado = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(conserva_estado);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(conserva_estado);
                     } else if (value == 9) {
                         int otras_anomalias = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setValue(otras_anomalias);
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setValue(otras_anomalias);
                     } else if (value == 10) {
                         try {
                             int valor_cartera_impresa = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(valor_cartera_impresa);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(valor_cartera_impresa);
                             style.setNumber(5);
                         } catch (Exception e) {
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(0);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(0);
                             style.setNumber(5);
                         }
                     } else if (value == 11) {
                         try {
                             int valor_cartera_efectiva = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(valor_cartera_efectiva);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(valor_cartera_efectiva);
                             style.setNumber(5);
                         } catch (Exception e) {
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(0);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(0);
                             style.setNumber(5);
                         }
                     } else if (value == 12) {
-                        wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setFormula("=M" + (iterador+(list+1)) + "/N" + (iterador+(list+1)));
+                        wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setFormula("=M" + (list2+(list+1)) + "/N" + (list2+(list+1)));
                         style.setNumber(9);
                     } else {
                         try {
                             int valor_cartera_excluida = Integer.parseInt(dataTaponamientos.get(value).get(list));
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(valor_cartera_excluida);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(valor_cartera_excluida);
                             style.setNumber(5);
                         } catch (Exception e) {
-                            wsInforme.getCells().get("" + c + "" + (iterador + (list + 1))).setValue(0);
+                            wsInforme.getCells().get("" + c + "" + (list2 + (list + 1))).setValue(0);
                             style.setNumber(5);
                         }
                     }
 
-                    wsInforme.getCells().get("" + c + "" + (iterador+(list+1))).setStyle(style);
+                    wsInforme.getCells().get("" + c + "" + (list2+(list+1))).setStyle(style);
 
-                    if (value < 16) {
+                    if (value < 13) {
                         value++;
                     }
 
@@ -1358,7 +1359,7 @@ public class generateXLS {
                 }
 
                 //TOTALIZADOR
-                wsInforme.getCells().get("C" + (iterador+(list+1)+1)).setValue("TOTAL");
+                wsInforme.getCells().get("C" + (list2+(list+1)+1)).setValue("TOTAL");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1367,12 +1368,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+1)+":E" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+1)+":E" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)),2,2,3);
+                wsInforme.getCells().merge((list2+(list+1)),2,2,3);
                 style = new Style();
                 //PROMEDIO SUSPENSIONES
-                wsInforme.getCells().get("F" + (iterador+(list+1)+1)).setFormula("=CONCATENATE(ROUND(AVERAGE(F"+ (iterador+1) + ":F" + (iterador+(list+1)) + "),1), \" DIAS\")");
+                wsInforme.getCells().get("F" + (list2+(list+1)+1)).setFormula("=CONCATENATE(ROUND(AVERAGE(F"+ (list2+1) + ":F" + (list2+(list+1)) + "),1), \" DIAS\")");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1381,12 +1382,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+1)+":F" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+1)+":F" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)),5,2,1);
+                wsInforme.getCells().merge((list2+(list+1)),5,2,1);
                 style = new Style();
                 //SUMA -> TOTAL TAPONAMIENTOS
-                wsInforme.getCells().get("G" + (iterador+(list+1)+1)).setFormula("=SUM(G"+(iterador+1)+":G"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("G" + (list2+(list+1)+1)).setFormula("=SUM(G"+(list2+1)+":G"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1395,12 +1396,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("G"+(iterador+(list+1)+1)+":G" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("G"+(list2+(list+1)+1)+":G" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)),6,2,1);
+                wsInforme.getCells().merge((list2+(list+1)),6,2,1);
                 style = new Style();
                 //SUMA -> CARTERA TOTAL
-                wsInforme.getCells().get("H" + (iterador+(list+1)+1)).setFormula("=SUM(H"+(iterador+1)+":H"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("H" + (list2+(list+1)+1)).setFormula("=SUM(H"+(list2+1)+":H"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1410,14 +1411,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("H"+(iterador+(list+1)+1)+":H" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("H"+(list2+(list+1)+1)+":H" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("H" + (iterador+(list+1)+1)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)),7,2,1);
+                wsInforme.getCells().get("H" + (list2+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)),7,2,1);
                 style = new Style();
                 //SUMA -> EFECTIVAS
-                wsInforme.getCells().get("I" + (iterador+(list+1)+1)).setFormula("=SUM(I"+(iterador+1)+":I"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("I" + (list2+(list+1)+1)).setFormula("=SUM(I"+(list2+1)+":I"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1426,10 +1427,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                wsInforme.getCells().get("I" + (iterador+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().get("I" + (list2+(list+1)+1)).setStyle(style);
                 style = new Style();
                 //PORCENTAJE -> EFECTIVAS
-                wsInforme.getCells().get("I" + (iterador+(list+1)+2)).setFormula("=I"+(iterador+(list+1)+1)+"/G"+(iterador+(list+1)+1)+"");
+                wsInforme.getCells().get("I" + (list2+(list+1)+2)).setFormula("=I"+(list2+(list+1)+1)+"/G"+(list2+(list+1)+1)+"");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1439,10 +1440,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
                 style.setNumber(9);
-                wsInforme.getCells().get("I" + (iterador+(list+1)+2)).setStyle(style);
+                wsInforme.getCells().get("I" + (list2+(list+1)+2)).setStyle(style);
                 style = new Style();
                 //SUMA -> PAGOS
-                wsInforme.getCells().get("J" + (iterador+(list+1)+1)).setFormula("=SUM(J"+(iterador+1)+":J"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("J" + (list2+(list+1)+1)).setFormula("=SUM(J"+(list2+1)+":J"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1451,10 +1452,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                wsInforme.getCells().get("J" + (iterador+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().get("J" + (list2+(list+1)+1)).setStyle(style);
                 style = new Style();
                 //PORCENTAJE -> PAGOS
-                wsInforme.getCells().get("J" + (iterador+(list+1)+2)).setFormula("=J"+(iterador+(list+1)+1)+"/G"+(iterador+(list+1)+1)+"");
+                wsInforme.getCells().get("J" + (list2+(list+1)+2)).setFormula("=J"+(list2+(list+1)+1)+"/G"+(list2+(list+1)+1)+"");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1464,10 +1465,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
                 style.setNumber(9);
-                wsInforme.getCells().get("J" + (iterador+(list+1)+2)).setStyle(style);
+                wsInforme.getCells().get("J" + (list2+(list+1)+2)).setStyle(style);
                 style = new Style();
                 //SUMA -> CONSERVA ESTADO
-                wsInforme.getCells().get("K" + (iterador+(list+1)+1)).setFormula("=SUM(K"+(iterador+1)+":K"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("K" + (list2+(list+1)+1)).setFormula("=SUM(K"+(list2+1)+":K"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1476,10 +1477,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                wsInforme.getCells().get("K" + (iterador+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().get("K" + (list2+(list+1)+1)).setStyle(style);
                 style = new Style();
                 //PORCENTAJE -> CONSERVA ESTADO
-                wsInforme.getCells().get("K" + (iterador+(list+1)+2)).setFormula("=K"+(iterador+(list+1)+1)+"/G"+(iterador+(list+1)+1));
+                wsInforme.getCells().get("K" + (list2+(list+1)+2)).setFormula("=K"+(list2+(list+1)+1)+"/G"+(list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1489,10 +1490,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
                 style.setNumber(9);
-                wsInforme.getCells().get("K" + (iterador+(list+1)+2)).setStyle(style);
+                wsInforme.getCells().get("K" + (list2+(list+1)+2)).setStyle(style);
                 style = new Style();
                 //SUMA -> OTRAS ANOMALIAS
-                wsInforme.getCells().get("L" + (iterador+(list+1)+1)).setFormula("=SUM(L"+(iterador+1)+":L"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("L" + (list2+(list+1)+1)).setFormula("=SUM(L"+(list2+1)+":L"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1501,10 +1502,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                wsInforme.getCells().get("L" + (iterador+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().get("L" + (list2+(list+1)+1)).setStyle(style);
                 style = new Style();
                 //PORCENTAJE -> OTRAS ANOMALIAS
-                wsInforme.getCells().get("L" + (iterador+(list+1)+2)).setFormula("=L"+(iterador+(list+1)+1)+"/G"+(iterador+(list+1)+1));
+                wsInforme.getCells().get("L" + (list2+(list+1)+2)).setFormula("=L"+(list2+(list+1)+1)+"/G"+(list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1514,10 +1515,10 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
                 style.setNumber(9);
-                wsInforme.getCells().get("L" + (iterador+(list+1)+2)).setStyle(style);
+                wsInforme.getCells().get("L" + (list2+(list+1)+2)).setStyle(style);
                 style = new Style();
                 //SUMA -> CARTERA EFECTIVA
-                wsInforme.getCells().get("M" + (iterador+(list+1)+1)).setFormula("=SUM(M"+(iterador+1)+":M"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("M" + (list2+(list+1)+1)).setFormula("=SUM(M"+(list2+1)+":M"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1527,14 +1528,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("M"+(iterador+(list+1)+1)+":M" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("M"+(list2+(list+1)+1)+":M" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("M" + (iterador+(list+1)+1)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)),12,2,1);
+                wsInforme.getCells().get("M" + (list2+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)),12,2,1);
                 style = new Style();
                 //SUMA -> CARTERA ENVIADA A TERRENO
-                wsInforme.getCells().get("N" + (iterador+(list+1)+1)).setFormula("=SUM(N"+(iterador+1)+":N"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("N" + (list2+(list+1)+1)).setFormula("=SUM(N"+(list2+1)+":N"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1544,14 +1545,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("N"+(iterador+(list+1)+1)+":N" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("N"+(list2+(list+1)+1)+":N" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("N" + (iterador+(list+1)+1)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)),13,2,1);
+                wsInforme.getCells().get("N" + (list2+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)),13,2,1);
                 style = new Style();
                 //PORCENTAJE -> CARTERA SUSPENDIDA
-                wsInforme.getCells().get("O" + (iterador+(list+1)+1)).setFormula("=M"+(iterador+(list+1)+1)+"/N"+(iterador+(list+1)+1));
+                wsInforme.getCells().get("O" + (list2+(list+1)+1)).setFormula("=M"+(list2+(list+1)+1)+"/N"+(list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1561,14 +1562,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("O"+(iterador+(list+1)+1)+":O" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("O"+(list2+(list+1)+1)+":O" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
                 style.setNumber(9);
-                wsInforme.getCells().get("O" + (iterador+(list+1)+1)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)),14,2,1);
+                wsInforme.getCells().get("O" + (list2+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)),14,2,1);
                 style = new Style();
                 //SUMA -> CARTERA EXCLUIDA
-                wsInforme.getCells().get("P" + (iterador+(list+1)+1)).setFormula("=SUM(P"+(iterador+1)+":P"+(iterador+(list+1)+")"));
+                wsInforme.getCells().get("P" + (list2+(list+1)+1)).setFormula("=SUM(P"+(list2+1)+":P"+(list2+(list+1)+")"));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1578,14 +1579,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("P"+(iterador+(list+1)+1)+":P" + (iterador+(list+1)+2));
+                range = wsInforme.getCells().createRange("P"+(list2+(list+1)+1)+":P" + (list2+(list+1)+2));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("P" + (iterador+(list+1)+1)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)),15,2,1);
+                wsInforme.getCells().get("P" + (list2+(list+1)+1)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)),15,2,1);
                 style = new Style();
                 //VALOR DE SUSPENSION
-                wsInforme.getCells().get("C" + (iterador+(list+1)+3)).setValue("VALOR DE TAPONAMIENTO");
+                wsInforme.getCells().get("C" + (list2+(list+1)+3)).setValue("VALOR DE TAPONAMIENTO");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
@@ -1595,12 +1596,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+3)+":E" + (iterador+(list+1)+3));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+3)+":E" + (list2+(list+1)+3));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)+2),2,1,3);
+                wsInforme.getCells().merge((list2+(list+1)+2),2,1,3);
                 style = new Style();
                 //CELDA -> VALOR DE TAPONAMIENTO
-                wsInforme.getCells().get("F" + (iterador+(list+1)+3)).setValue(24000);
+                wsInforme.getCells().get("F" + (list2+(list+1)+3)).setValue(24000);
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1609,14 +1610,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+3)+":H" + (iterador+(list+1)+3));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+3)+":H" + (list2+(list+1)+3));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("F" + (iterador+(list+1)+3)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)+2),5,1,3);
+                wsInforme.getCells().get("F" + (list2+(list+1)+3)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)+2),5,1,3);
                 style = new Style();
                 //VALOR TOTAL RECAUDADO
-                wsInforme.getCells().get("C" + (iterador+(list+1)+4)).setValue("VALOR TOTAL RECAUDADO");
+                wsInforme.getCells().get("C" + (list2+(list+1)+4)).setValue("VALOR TOTAL RECAUDADO");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
@@ -1626,12 +1627,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+4)+":E" + (iterador+(list+1)+4));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+4)+":E" + (list2+(list+1)+4));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)+3),2,1,3);
+                wsInforme.getCells().merge((list2+(list+1)+3),2,1,3);
                 style = new Style();
                 //CELDA -> VALOR RECAUDADO
-                wsInforme.getCells().get("F" + (iterador+(list+1)+4)).setValue(0);
+                wsInforme.getCells().get("F" + (list2+(list+1)+4)).setValue(0);
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1640,14 +1641,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+4)+":H" + (iterador+(list+1)+4));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+4)+":H" + (list2+(list+1)+4));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("F" + (iterador+(list+1)+4)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)+3),5,1,3);
+                wsInforme.getCells().get("F" + (list2+(list+1)+4)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)+3),5,1,3);
                 style = new Style();
                 //VALOR TOTAL EJECUCION
-                wsInforme.getCells().get("C" + (iterador+(list+1)+5)).setValue("VALOR TOTAL EJECUCION");
+                wsInforme.getCells().get("C" + (list2+(list+1)+5)).setValue("VALOR TOTAL EJECUCION");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
@@ -1657,12 +1658,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+5)+":E" + (iterador+(list+1)+5));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+5)+":E" + (list2+(list+1)+5));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)+4),2,1,3);
+                wsInforme.getCells().merge((list2+(list+1)+4),2,1,3);
                 style = new Style();
                 //CELDA -> VALOR EJECUCION
-                wsInforme.getCells().get("F" + (iterador+(list+1)+5)).setFormula("=F" + (iterador+(list+1)+3) + "*G" + (iterador+(list+1)+1));
+                wsInforme.getCells().get("F" + (list2+(list+1)+5)).setFormula("=F" + (list2+(list+1)+3) + "*G" + (list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1671,14 +1672,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+5)+":H" + (iterador+(list+1)+5));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+5)+":H" + (list2+(list+1)+5));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("F" + (iterador+(list+1)+5)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)+4),5,1,3);
+                wsInforme.getCells().get("F" + (list2+(list+1)+5)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)+4),5,1,3);
                 style = new Style();
                 //TOTAL RECAUDADO + EJECUTADO
-                wsInforme.getCells().get("C" + (iterador+(list+1)+6)).setValue("TOTAL RECAUDADO + EJECUTADO");
+                wsInforme.getCells().get("C" + (list2+(list+1)+6)).setValue("TOTAL RECAUDADO + EJECUTADO");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
@@ -1688,12 +1689,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+6)+":E" + (iterador+(list+1)+6));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+6)+":E" + (list2+(list+1)+6));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)+5),2,1,3);
+                wsInforme.getCells().merge((list2+(list+1)+5),2,1,3);
                 style = new Style();
                 //CELDA -> RECAUDADO + EJECUTADO
-                wsInforme.getCells().get("F" + (iterador+(list+1)+6)).setFormula("=F" + (iterador+(list+1)+4) + "+F" + (iterador+(list+1)+5));
+                wsInforme.getCells().get("F" + (list2+(list+1)+6)).setFormula("=F" + (list2+(list+1)+4) + "+F" + (list2+(list+1)+5));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1702,14 +1703,14 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+6)+":H" + (iterador+(list+1)+6));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+6)+":H" + (list2+(list+1)+6));
                 range.applyStyle(style, flag);
                 style.setNumber(5);
-                wsInforme.getCells().get("F" + (iterador+(list+1)+6)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)+5),5,1,3);
+                wsInforme.getCells().get("F" + (list2+(list+1)+6)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)+5),5,1,3);
                 style = new Style();
                 //PORCENTAJE RECAUDADO
-                wsInforme.getCells().get("C" + (iterador+(list+1)+7)).setValue("PORCENTAJE RECAUDADO");
+                wsInforme.getCells().get("C" + (list2+(list+1)+7)).setValue("PORCENTAJE RECAUDADO");
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(0,176,240));
                 style.setPattern(BackgroundType.SOLID);
@@ -1719,12 +1720,12 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("C"+(iterador+(list+1)+7)+":E" + (iterador+(list+1)+7));
+                range = wsInforme.getCells().createRange("C"+(list2+(list+1)+7)+":E" + (list2+(list+1)+7));
                 range.applyStyle(style, flag);
-                wsInforme.getCells().merge((iterador+(list+1)+6),2,1,3);
+                wsInforme.getCells().merge((list2+(list+1)+6),2,1,3);
                 style = new Style();
                 //CELDA -> PORCENTAJE RECAUDADO
-                wsInforme.getCells().get("F" + (iterador+(list+1)+7)).setFormula("=F" + (iterador+(list+1)+4) + "/M" + (iterador+(list+1)+1));
+                wsInforme.getCells().get("F" + (list2+(list+1)+7)).setFormula("=F" + (list2+(list+1)+4) + "/M" + (list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1733,16 +1734,617 @@ public class generateXLS {
                 style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
                 style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
-                range = wsInforme.getCells().createRange("F"+(iterador+(list+1)+7)+":H" + (iterador+(list+1)+7));
+                range = wsInforme.getCells().createRange("F"+(list2+(list+1)+7)+":H" + (list2+(list+1)+7));
                 range.applyStyle(style, flag);
                 style.setNumber(9);
-                wsInforme.getCells().get("F" + (iterador+(list+1)+7)).setStyle(style);
-                wsInforme.getCells().merge((iterador+(list+1)+6),5,1,3);
+                wsInforme.getCells().get("F" + (list2+(list+1)+7)).setStyle(style);
+                wsInforme.getCells().merge((list2+(list+1)+6),5,1,3);
+                style = new Style();
+                //OBSERVACION
+                wsInforme.getCells().get("I" + (list2+(list+1)+3)).setValue("OBSERVACIÓN: ");
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("I"+(list2+(list+1)+3)+":P" + (list2+(list+1)+7));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list2+(list+1)+2),8,5,8);
+                style = new Style();
+
+                int list3 = list + list2;
+                //TABLA REINSTALACIONES
+                wsInforme.getCells().get("C" + (list3 + 9)).setValue("REINSTALACIONES");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C" + (list3 + 9)+ ":P" + (list3 + 9));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 8),2,1,14);
+                style = new Style();
+                //FECHA REINSTALACION
+                wsInforme.getCells().get("C" + (list3 + 10)).setValue("FECHA REINSTALACION");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C" + (list3 + 10)+ ":D" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),2,2,2);
+                style = new Style();
+                //FECHA CIERRE
+                wsInforme.getCells().get("E" + (list3 + 10)).setValue("FECHA CIERRE");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("E" + (list3 + 10)+ ":F" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),4    ,2,2);
+                style = new Style();
+                //PROMEDIO DIAS
+                wsInforme.getCells().get("G" + (list3 + 10)).setValue("PROMEDIO (DIAS)");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G" + (list3 + 10)+ ":G" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),6    ,2,1);
+                style = new Style();
+                //TOTAL REINSTALACIONES
+                wsInforme.getCells().get("H" + (list3 + 10)).setValue("TOTAL\nREINSTALACIONES");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.DISTRIBUTED);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("H" + (list3 + 10)+ ":H" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),7    ,2,1);
+                style = new Style();
+                //RESULTADO
+                wsInforme.getCells().get("I" + (list3 + 10)).setValue("RESULTADO");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("I" + (list3 + 10)+ ":L" + (list3 + 10));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),8    ,1,4);
+                style = new Style();
+                //R -> EFECTIVAS
+                wsInforme.getCells().get("I" + (list3 + 11)).setValue("EFECTIVAS");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(255,230,153));
+                style.setPattern(BackgroundType.SOLID);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.setVerticalAlignment(TextAlignmentType.CENTER);
+                range = wsInforme.getCells().createRange("I" + (list3 + 11)+ ":J" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 10),8,1,2);
+                style = new Style();
+                //R -> INEFECTIVAS
+                wsInforme.getCells().get("K" + (list3 + 11)).setValue("INEFECTIVAS");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(255,230,153));
+                style.setPattern(BackgroundType.SOLID);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.setVerticalAlignment(TextAlignmentType.CENTER);
+                range = wsInforme.getCells().createRange("K" + (list3 + 11)+ ":L" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 10),10,1,2);
+                style = new Style();
+                //PORCION
+                wsInforme.getCells().get("O" + (list3 + 10)).setValue("PORCION");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.DISTRIBUTED);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("O" + (list3 + 10)+ ":O" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),14,2,1);
+                style = new Style();
+                //TOTAL REINSTALACIONES
+                wsInforme.getCells().get("P" + (list3 + 10)).setValue("TOTAL\nREINSTALACIONES");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.DISTRIBUTED);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("P" + (list3 + 10)+ ":P" + (list3 + 11));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),15,2,1);
+                style = new Style();
+                //DATA
+                list = 0;
+                value = 0;
+
+                for (c = 'C'; c <= 'L'; c++) {
+                    style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.setHorizontalAlignment(TextAlignmentType.CENTER);
+
+                    if (value == 0) {
+                        String fecha = dataReinstalaciones.get(0).get(list);
+
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        Date date = dateFormat.parse(fecha);
+
+                        dunning.setTime(date);
+                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("d/MM/yyyy");
+                        fecha = simpleDateFormat.format(date);
+
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(fecha);
+                        range = wsInforme.getCells().createRange("" + c + "" + ((list3 + 12)+list) + ":" + (c++) + "" + ((list3 + 12)+list));
+                        range.applyStyle(style, flag);
+                        wsInforme.getCells().merge(((list3 + 11)+list),2,1,2);
+                    } else if (value == 1) {
+                        String fecha = dataReinstalaciones.get(1).get(list);
+
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                        Date date = dateFormat.parse(fecha);
+
+                        cierre.setTime(date);
+                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("d/MM/yyyy");
+                        fecha = simpleDateFormat.format(date);
+
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(fecha);
+                        range = wsInforme.getCells().createRange("" + c + "" + ((list3 + 12)+list) + ":" + (c++) + ((list3 + 12)+list));
+                        range.applyStyle(style, flag);
+                        wsInforme.getCells().merge(((list3 + 11)+list),4,1,2);
+                    } else if (value == 2) {
+                        int days = 0;
+
+                        while (dunning.before(cierre) || dunning.equals(cierre)) {
+                            if (dunning.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY && dunning.get(Calendar.DAY_OF_WEEK) != Calendar.SATURDAY) {
+                                days++;
+                            }
+                            dunning.add(Calendar.DATE, 1);
+                        }
+                        days--;
+
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(days);
+                    } else if (value == 3) {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(Integer.parseInt(dataReinstalaciones.get(value).get(list)));
+                    }
+                    else if (value == 4) {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(Integer.parseInt(dataReinstalaciones.get(value).get(list)));
+                        range = wsInforme.getCells().createRange("" + c + "" + ((list3 + 12)+list) + ":" + (c++) + ((list3 + 12)+list));
+                        range.applyStyle(style, flag);
+                        wsInforme.getCells().merge(((list3 + 11)+list),8,1,2);
+                    } else {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(Integer.parseInt(dataReinstalaciones.get(value).get(list)));
+                        range = wsInforme.getCells().createRange("" + c + "" + ((list3 + 12)+list) + ":" + (c++) + ((list3 + 12)+list));
+                        range.applyStyle(style, flag);
+                        wsInforme.getCells().merge(((list3 + 11)+list),10,1,2);
+                    }
+
+                    if (c != 'C' && c != 'E' && c != 'I' && c != 'K') {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12) + list)).setStyle(style);
+                    }
+                    if (value < 5) {
+                        value++;
+                    }
+
+                    if (list < (dataReinstalaciones.get(0).size()-1) && c == 'L') {
+                        c = 'B';
+                        value = 0;
+                        list++;
+                    }
+                    style = new Style();
+                }
+
+                //TOTALIZADOR
+                wsInforme.getCells().get("C" + ((list3 + 13) + list)).setValue("TOTAL");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C"+((list3 + 13) + list)+":F" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 12) + list),2,2,4);
+                style = new Style();
+                //PROMEDIO REINSTALACIONES
+                wsInforme.getCells().get("G" + ((list3 + 13) + list)).setFormula("=CONCATENATE(ROUND(AVERAGE(G"+ ((list3 + 12)) + ":G" + ((list3 + 12) + list) + "),1), \" DIAS\")");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G"+((list3 + 13) + list)+":G" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 12) + list),6,2,1);
+                style = new Style();
+                //SUMA -> TOTAL REINSTALACIONES
+                wsInforme.getCells().get("H" + ((list3 + 13) + list)).setFormula("=SUM(H"+((list3 + 12))+":H"+((list3 + 12) + list)+")");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("H"+((list3 + 13) + list)+":H" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 12) + list),7,2,1);
+                style = new Style();
+                //SUMA -> EFECTIVAS
+                wsInforme.getCells().get("I" + ((list3 + 13) + list)).setFormula("=SUM(I"+((list3 + 12))+":I"+((list3 + 12) + list)+")");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("I"+((list3 + 13) + list)+":J" + ((list3 + 13) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 12) + list),8,1,2);
+                style = new Style();
+                //PORCENTAJE -> EFECTIVAS
+                wsInforme.getCells().get("I" + ((list3 + 14) + list)).setFormula("=I"+((list3 + 13) + list)+"/H"+((list3 + 13) + list));
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("I"+((list3 + 14) + list)+":J" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(9);
+                wsInforme.getCells().get("I" + ((list3 + 14) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 13) + list),8,1,2);
+                style = new Style();
+                //SUMA -> INEFECTIVAS
+                wsInforme.getCells().get("K" + ((list3 + 13) + list)).setFormula("=SUM(K"+((list3 + 12))+":K"+((list3 + 12) + list)+")");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("K"+((list3 + 13) + list)+":L" + ((list3 + 13) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 12) + list),10,1,2);
+                style = new Style();
+                //PORCENTAJE -> INEFECTIVAS
+                wsInforme.getCells().get("K" + ((list3 + 14) + list)).setFormula("=K"+((list3 + 13) + list)+"/H"+((list3 + 13) + list));
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("K"+((list3 + 14) + list)+":L" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(9);
+                wsInforme.getCells().get("K" + ((list3 + 14) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 13) + list),10,1,2);
+                style = new Style();
+                //VALOR DE REINSTALACION
+                wsInforme.getCells().get("C" + ((list3 + 15) + list)).setValue("VALOR DE REINSTALACION");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C"+((list3 + 15) + list)+":F" + ((list3 + 15) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 14) + list),2,1,4);
+                style = new Style();
+                //CELDA -> VALOR DE REINSTALACION
+                wsInforme.getCells().get("G" + ((list3 + 15) + list)).setValue(12000);
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G"+((list3 + 15) + list)+":H" + ((list3 + 15) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(5);
+                wsInforme.getCells().get("G" + ((list3 + 15) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 14) + list),6,1,2);
+                style = new Style();
+                //VALOR TOTAL RECAUDADO
+                wsInforme.getCells().get("C" + ((list3 + 16) + list)).setValue("VALOR TOTAL RECAUDADO");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C"+((list3 + 16) + list)+":F" + ((list3 + 16) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 15) + list),2,1,4);
+                style = new Style();
+                //CELDA -> VALOR RECAUDADO
+                wsInforme.getCells().get("G" + ((list3 + 16) + list)).setValue(0);
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G"+((list3 + 16) + list)+":H" + ((list3 + 16) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(5);
+                wsInforme.getCells().get("G" + ((list3 + 16) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 15) + list),6,1,2);
+                style = new Style();
+                //VALOR TOTAL EJECUCION
+                wsInforme.getCells().get("C" + ((list3 + 17) + list)).setValue("VALOR TOTAL EJECUCION");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C"+((list3 + 17) + list)+":F" + ((list3 + 17) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 16) + list),2,1,4);
+                style = new Style();
+                //CELDA -> VALOR EJECUCION
+                wsInforme.getCells().get("G" + ((list3 + 17) + list)).setFormula("=G" + ((list3 + 15) + list) + "*H" + ((list3 + 13) + list));
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G"+((list3 + 17) + list)+":H" + ((list3 + 17) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(5);
+                wsInforme.getCells().get("G" + ((list3 + 17) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 16) + list),6,1,2);
+                style = new Style();
+                //TOTAL RECAUDADO + EJECUTADO
+                wsInforme.getCells().get("C" + ((list3 + 18) + list)).setValue("TOTAL RECAUDADO + EJECUTADO");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("C"+((list3 + 18) + list)+":F" + ((list3 + 18) + list));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(((list3 + 17) + list),2,1,4);
+                style = new Style();
+                //CELDA -> RECAUDADO + EJECUTADO
+                wsInforme.getCells().get("G" + ((list3 + 18) + list)).setFormula("=G" + ((list3 + 17) + list) + "+G" + ((list3 + 16) + list));
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("G"+((list3 + 18) + list)+":H" + ((list3 + 18) + list));
+                range.applyStyle(style, flag);
+                style.setNumber(5);
+                wsInforme.getCells().get("G" + ((list3 + 18) + list)).setStyle(style);
+                wsInforme.getCells().merge(((list3 + 17) + list),6,1,2);
+                style = new Style();
+                //OBSERVACION
+                wsInforme.getCells().get("M" + (list3 + 10)).setValue("OBSERVACIÓN: ");
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                range = wsInforme.getCells().createRange("M"+(list3 + 10)+":N" + ((list3 + 12) + dataPorcionXreinstalaciones.get(0).size()));
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge((list3 + 9),12,(dataPorcionXreinstalaciones.get(0).size()+3),2);
+                style = new Style();
+
+                //PORCIONES
+                list = 0;
+                value = 0;
+                for (c = 'O'; c <= 'P'; c++) {
+                    style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                    style.setHorizontalAlignment(TextAlignmentType.CENTER);
+
+                    if (value == 0) {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(dataPorcionXreinstalaciones.get(value).get(list));
+                    } else {
+                        wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setValue(Integer.parseInt(dataPorcionXreinstalaciones.get(value).get(list)));
+                    }
+
+                    wsInforme.getCells().get("" + c + "" + ((list3 + 12)+list)).setStyle(style);
+
+                    if (value < 1) {
+                        value++;
+                    }
+
+                    if (list < (dataPorcionXreinstalaciones.get(0).size()-1) && c == 'P') {
+                        c = 'N';
+                        value = 0;
+                        list++;
+                    }
+                    style = new Style();
+                }
+
+                //TOTAL RECAUDADO + EJECUTADO
+                wsInforme.getCells().get("O" + ((list3 + 13) + list)).setValue("TOTAL");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.getFont().setColor(Color.getWhite());
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                wsInforme.getCells().get("O" + ((list3 + 13) + list)).setStyle(style);
+                style = new Style();
+                //CELDA -> RECAUDADO + EJECUTADO
+                wsInforme.getCells().get("P" + ((list3 + 13) + list)).setFormula("=SUM(P"+(list3 + 12)+":P"+((list3 + 12)+list)+")");
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(146,208,80));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.THIN);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.THIN);
+                wsInforme.getCells().get("P" + ((list3 + 13) + list)).setStyle(style);
+                style = new Style();
+
+
+                //TITULO
+                wsInforme.getCells().get("B2").setValue("INFORME DUNNING " + fileMes + " " + anio);
+                style.getFont().setSize(28);
+                style.getFont().setBold(true);
+                style.setForegroundColor(Color.fromArgb(0,176,240));
+                style.setPattern(BackgroundType.SOLID);
+                style.setHorizontalAlignment(TextAlignmentType.CENTER);
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.MEDIUM);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.MEDIUM);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.MEDIUM);
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.MEDIUM);
+                range = wsInforme.getCells().createRange("B2:Q2");
+                range.applyStyle(style, flag);
+                wsInforme.getCells().merge(1,1,1,16);
+                style = new Style();
+
+                //BORDE SUPERIOR
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                range = wsInforme.getCells().createRange("C4:P4");
+                range.applyStyle(style, flag);
+                style = new Style();
+
+                //ESQUINA SUPERIOR IZQUIERDA
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                wsInforme.getCells().get("B4").setStyle(style);
+                style = new Style();
+
+                //ESQUINA SUPERIOR DERECHA
+                style.getBorders().getByBorderType(BorderType.TOP_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                wsInforme.getCells().get("Q4").setStyle(style);
+                style = new Style();
+
+                //BORDE IZQUIERDO
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                range = wsInforme.getCells().createRange("B5:B" + ((list3 + 13) + list));
+                range.applyStyle(style, flag);
+                style = new Style();
+
+                //BORDE DERECHO
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                range = wsInforme.getCells().createRange("Q5:Q" + ((list3 + 13) + list));
+                range.applyStyle(style, flag);
+                style = new Style();
+
+                //ESQUINA INFERIOR IZQUIERDA
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                style.getBorders().getByBorderType(BorderType.LEFT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                wsInforme.getCells().get("B" + ((list3 + 14) + list)).setStyle(style);
+                style = new Style();
+
+                //ESQUINA INFERIOR DERECHA
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                style.getBorders().getByBorderType(BorderType.RIGHT_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                wsInforme.getCells().get("Q" + ((list3 + 14) + list)).setStyle(style);
+                style = new Style();
+
+                //BORDE INFERIOR
+                style.getBorders().getByBorderType(BorderType.BOTTOM_BORDER).setLineStyle(CellBorderType.DOUBLE);
+                range = wsInforme.getCells().createRange("C" + ((list3 + 14) + list) + ":P" + ((list3 + 14) + list));
+                range.applyStyle(style, flag);
                 style = new Style();
 
                 wb.save("files\\" + mes + ". Informe " + fileMes + "-" + anio + " Dunning.xlsx");
             } catch (Exception e) {
-
+                System.out.println(e);
                 codeAlert = 2;
             }
 
