@@ -153,7 +153,7 @@ public class app extends Application {
 
         ObservableList<String> optionsMonth = FXCollections.observableArrayList("1 - ENERO", "2 - FEBRERO", "3 - MARZO", "4 - ABRIL", "5 - MAYO", "6 - JUNIO", "7 - JULIO", "8 - AGOSTO", "9 - SEPTIEMBRE", "10 - OCTUBRE", "11 - NOVIEMBRE", "12 - DICIEMBRE");
         final ComboBox comboMonth = new ComboBox(optionsMonth);
-        comboMonth.setPrefSize(175,10);
+        comboMonth.setPrefSize(175,30);
         comboMonth.relocate(55,195);
         comboMonth.setPromptText("SELECCIONAR MES");
         layout.getChildren().add(comboMonth);
@@ -175,7 +175,7 @@ public class app extends Application {
 
         ObservableList<String> optionsYear = FXCollections.observableArrayList(new ArrayList<>(years));
         final ComboBox comboYear = new ComboBox(optionsYear);
-        comboYear.setPrefSize(177,10);
+        comboYear.setPrefSize(177,30);
         comboYear.relocate(235,195);
         comboYear.setPromptText("SELECCIONAR AÑO");
         layout.getChildren().add(comboYear);

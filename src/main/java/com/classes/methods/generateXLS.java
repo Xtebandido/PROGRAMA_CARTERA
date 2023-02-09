@@ -7,6 +7,8 @@ import com.classes.connection.conexion;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
+
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -2343,6 +2345,8 @@ public class generateXLS {
                 style = new Style();
 
                 wb.save("files\\" + mes + ". Informe " + fileMes + "-" + anio + " Dunning.xlsx");
+                File openInforme = new File("files");
+                Runtime.getRuntime().exec("cmd /c start " + openInforme.getAbsolutePath() + " && exit");
             } catch (Exception e) {
                 System.out.println(e);
                 codeAlert = 2;
