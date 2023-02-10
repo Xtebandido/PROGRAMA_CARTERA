@@ -7,7 +7,6 @@ import com.classes.connection.conexion;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
-
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

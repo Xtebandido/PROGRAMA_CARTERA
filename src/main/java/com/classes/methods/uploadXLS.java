@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -22,7 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class uploadXLS {
 
     boolean isError = false;
+    boolean isHistoric = false;
     int codeError = 0;
+    String typeHistoric = "";
     String typeError = "";
 
     public void validXLSX(Workbook wbXLSX) {
@@ -42,12 +45,14 @@ public class uploadXLS {
                         (ws1.getCells().getMaxDataRow()+1 == ws1.getCells().getLastDataRow(17)+1)
                         ) {
                             boolean error = false;
-                            String[] errorType = {"","","","","", ""};
+                            String[] errorType = {"","","","","","","",""};
 
                             List<String> avisos = new ArrayList<>();
+                            List<Integer> cuenta_contrato = new ArrayList<>();
                             List<String> porcion = new ArrayList<>();
                             List<String> tipoSolicitud = new ArrayList<>();
                             List<String> fecha = new ArrayList<>();
+                            List<String> direccion = new ArrayList<>();
                             List<Integer> resultado = new ArrayList<>();
                             List<String> f_cierre = new ArrayList<>();
 
@@ -62,18 +67,25 @@ public class uploadXLS {
                                     errorType[0] = "\n• numero de aviso";
                                 }
 
+                                try {
+                                    cuenta_contrato.add(ws1.getCells().get(i,0).getIntValue());
+                                } catch (Exception e) {
+                                    error = true;
+                                    errorType[1] = "\n• cuenta contrato";
+                                }
+
                                 if (ws1.getCells().get(i,2).getValue() != null && ws1.getCells().get(i,2).getValue() != "" && (ws1.getCells().get(i,2).getValue().equals("REINSTALACION"))) {
                                     tipoSolicitud.add(ws1.getCells().get(i,2).getStringValue());
                                 } else {
                                     error = true;
-                                    errorType[1] = "\n• tipo de solicitud";
+                                    errorType[2] = "\n• tipo de solicitud";
                                 }
 
                                 if (ws1.getCells().get(i,6).getValue() != null && ws1.getCells().get(i,6).getValue() != "") {
                                     porcion.add(ws1.getCells().get(i,6).getStringValue());
                                 } else {
                                     error = true;
-                                    errorType[2] = "\n• porcion";
+                                    errorType[3] = "\n• porcion";
                                 }
 
                                 try {
@@ -84,18 +96,28 @@ public class uploadXLS {
                                         fecha.add(validFecha);
                                     } else {
                                         error = true;
-                                        errorType[3] = "\n• fecha de programación";
+                                        errorType[4] = "\n• fecha de programación";
                                     }
                                 } catch (Exception e) {
                                     error = true;
-                                    errorType[3] = "\n• fecha de programación";
+                                    errorType[4] = "\n• fecha de programación";
+                                }
+
+                                if (ws1.getCells().get(i,5).getValue() != null && ws1.getCells().get(i,5).getValue() != "") {
+                                    String validDireccion = ws1.getCells().get(i,5).getStringValue();
+                                    validDireccion.replace(",","");
+                                    validDireccion.replace(";","");
+                                    direccion.add(validDireccion);
+                                } else {
+                                    error = true;
+                                    errorType[5] = "\n• dirección";
                                 }
 
                                 try {
                                     resultado.add(ws1.getCells().get(i,10).getIntValue());
                                 } catch (Exception e) {
                                     error = true;
-                                    errorType[4] = "\n• resultado";
+                                    errorType[6] = "\n• resultado";
                                 }
 
                                 try {
@@ -106,20 +128,22 @@ public class uploadXLS {
                                         f_cierre.add(validFecha);
                                     } else {
                                         error = true;
-                                        errorType[5] = "\n• fecha de cierre";
+                                        errorType[7] = "\n• fecha de cierre";
                                     }
                                 } catch (Exception e) {
                                     error = true;
-                                    errorType[5] = "\n• fecha de cierre";
+                                    errorType[7] = "\n• fecha de cierre";
                                 }
                             }
 
                             if (error != true) {
                                 dataWS1.add(avisos);
+                                dataWS1.add(cuenta_contrato);
                                 dataWS1.add(porcion);
                                 dataWS1.add(tipoSolicitud);
                                 dataWS1.add(resultado);
                                 dataWS1.add(fecha);
+                                dataWS1.add(direccion);
                                 dataWS1.add(f_cierre);
 
                                 File reinstalacionesCSV = new File("files\\data_Reinstalaciones.csv");
@@ -151,22 +175,76 @@ public class uploadXLS {
                                     p.getErrorStream().close();
                                     p.waitFor();
 
-                                    String deleteDate = dataWS1.get(4).get(0).toString();
-                                    try {
-                                        dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                                        Calendar c = Calendar.getInstance();
-                                        c.setTime(dateFormat.parse(deleteDate));
-                                        c.add(Calendar.YEAR, -1);
-                                        deleteDate = dateFormat.format(c.getTime());
-                                    } catch (Exception e) {
-                                        System.out.println(e);
-                                    }
+                                    dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                    Calendar lastCalendar = Calendar.getInstance();
+                                    Calendar uploadCalendarInitial = Calendar.getInstance();
+                                    Calendar uploadCalendarLast = Calendar.getInstance();
 
                                     conexion database = new conexion();
                                     Connection con = database.conectarSQL();
+                                    PreparedStatement ps = con.prepareStatement("SELECT DISTINCT f_cierre FROM REINSTALACIONES ORDER BY f_cierre");
+                                    ResultSet rs = ps.executeQuery();
+                                    lastCalendar.setTime(dateFormat.parse(rs.getString("f_cierre")));
 
-                                    PreparedStatement ps = con.prepareStatement("DELETE FROM REINSTALACIONES WHERE (fecha < '"+deleteDate+"');");
-                                    ps.executeUpdate();
+                                    Date validateDate;
+                                    Date uploadDateInitial = null;
+                                    Date uploadDateLast = null;
+
+                                    for (int i = 0; i < dataWS1.get(7).size(); i++) {
+                                        validateDate = dateFormat.parse(dataWS1.get(7).get(i).toString());
+                                        if (uploadDateInitial == null || validateDate.before(uploadDateInitial)) {
+                                            uploadDateInitial = dateFormat.parse(dataWS1.get(7).get(i).toString());
+                                        }
+                                        if (uploadDateLast == null || uploadDateLast.before(validateDate)) {
+                                            uploadDateLast = dateFormat.parse(dataWS1.get(7).get(i).toString());
+                                        }
+                                    }
+                                    uploadCalendarInitial.setTime(uploadDateInitial);
+                                    uploadCalendarLast.setTime(uploadDateLast);
+
+                                    if (uploadCalendarInitial.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1  || uploadCalendarLast.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1 && uploadCalendarInitial.get(Calendar.MONTH) == 0 || uploadCalendarLast.get(Calendar.MONTH) == 0) {
+                                        if (uploadCalendarInitial.get(Calendar.MONTH) == 11) {
+                                            ps = con.prepareStatement("SELECT * FROM REINSTALACIONES WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
+                                            rs = ps.executeQuery();
+                                            try {
+                                                File historicoCSV = new File("files\\HISTORICO\\Reinstalaciones\\historico.csv");
+                                                write = new PrintWriter(historicoCSV);
+                                                write.print("cuenta_contrato, porcion, tipo_solicitud, resultado, fecha, direccion, f_cierre, aviso\n");
+                                                while (rs.next()) {
+                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("resultado") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso")+ "\n");
+                                                }
+                                                write.close();
+                                                Workbook wb = new Workbook(historicoCSV.getAbsolutePath());
+
+                                                Style style = new Style();
+                                                style.setForegroundColor(Color.fromArgb(255,255,102));
+                                                style.setPattern(BackgroundType.SOLID);
+                                                wb.getWorksheets().get(0).getCells().createRange("A1:H1").setStyle(style);
+
+                                                Cells cells = wb.getWorksheets().get(0).getCells();
+                                                cells.setColumnWidth(0, 13.43); //A
+                                                cells.setColumnWidth(1, 6.57); //B
+                                                cells.setColumnWidth(2, 15.29); //C
+                                                cells.setColumnWidth(3, 8.71); //D
+                                                cells.setColumnWidth(4, 10); //E
+                                                cells.setColumnWidth(5, 40); //F
+                                                cells.setColumnWidth(6, 10); //G
+                                                cells.setColumnWidth(7, 10); //H
+
+
+                                                wb.save("files\\HISTORICO\\Reinstalaciones\\Historico Reinstalaciones " + uploadCalendarInitial.get(Calendar.YEAR) + ".xlsx");
+                                                historicoCSV.delete();
+                                                isHistoric = true;
+                                                typeHistoric = "REINSTALACIONES";
+                                            } catch (Exception e) {
+                                                System.out.println(e);
+                                            }
+                                        } else if (uploadCalendarInitial.get(Calendar.MONTH) == 0) {
+                                            uploadCalendarInitial.add(Calendar.YEAR, -1);
+                                            ps = con.prepareStatement("DELETE FROM REINSTALACIONES WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
+                                            ps.executeUpdate();
+                                        }
+                                    }
 
                                 } catch (Exception e) {
                                     System.out.println(e);
@@ -174,7 +252,7 @@ public class uploadXLS {
 
 
                             } else {
-                                typeError += "\n➤ IMPRESIÓN" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + "\n";
+                                typeError += "\n➤ REINSTALACIONES" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + errorType[7] + "\n";
                                 isError = true;
                                 codeError = 5;
                             }
@@ -245,15 +323,17 @@ public class uploadXLS {
                             String valPorcion = ws1.getCells().get(1,7).getStringValue();
 
                             Thread sheet1 = new Thread(() -> {
-                                String[] errorType = {"","","","","","",""};
+                                String[] errorType = {"","","","","","","","",""};
 
                                 boolean t1Error = false;
 
                                 List<String> avisos = new ArrayList<>();
+                                List<Integer> cuenta_contrato = new ArrayList<>();
                                 List<Integer> pagos = new ArrayList<>();
                                 List<String> tipoSolicitud = new ArrayList<>();
                                 List<String> porcion = new ArrayList<>();
                                 List<String> fecha = new ArrayList<>();
+                                List<String> direccion = new ArrayList<>();
                                 List<String> f_ejecutado = new ArrayList<>();
                                 List<String> f_cierre = new ArrayList<>();
 
@@ -269,24 +349,31 @@ public class uploadXLS {
                                     }
 
                                     try {
+                                        cuenta_contrato.add(ws1.getCells().get(i,0).getIntValue());
+                                    } catch (Exception e) {
+                                        t1Error = true;
+                                        errorType[1] = "\n• cuenta contrato";
+                                    }
+
+                                    try {
                                         pagos.add(ws1.getCells().get(i,1).getIntValue());
                                     } catch (Exception e) {
                                         t1Error = true;
-                                        errorType[1] = "\n• pagos";
+                                        errorType[2] = "\n• pagos";
                                     }
 
                                     if (ws1.getCells().get(i,3).getValue() != null && ws1.getCells().get(i,3).getValue() != "" && (ws1.getCells().get(i,3).getValue().equals("SUSPENSION") || ws1.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
                                         tipoSolicitud.add(ws1.getCells().get(i,3).getStringValue());
                                     } else {
                                         t1Error = true;
-                                        errorType[2] = "\n• tipo de solicitud";
+                                        errorType[3] = "\n• tipo de solicitud";
                                     }
 
                                     if (ws1.getCells().get(i,7).getValue() != null && ws1.getCells().get(i,7).getValue() != "" && ws1.getCells().get(i,7).getValue() == valPorcion) {
                                         porcion.add(ws1.getCells().get(i,7).getStringValue());
                                     } else {
                                         t1Error = true;
-                                        errorType[3] = "\n• porcion";
+                                        errorType[4] = "\n• porcion";
                                     }
 
                                     try {
@@ -301,7 +388,17 @@ public class uploadXLS {
                                         }
                                     } catch (Exception e) {
                                         t1Error = true;
-                                        errorType[4] = "\n• fecha de programación";
+                                        errorType[5] = "\n• fecha de programación";
+                                    }
+
+                                    if (ws1.getCells().get(i,6).getValue() != null && ws1.getCells().get(i,6).getValue() != "") {
+                                        String validDireccion = ws1.getCells().get(i,6).getStringValue();
+                                        validDireccion.replace(",","");
+                                        validDireccion.replace(";","");
+                                        direccion.add(validDireccion);
+                                    } else {
+                                        t1Error = true;
+                                        errorType[6] = "\n• dirección";
                                     }
 
                                     try {
@@ -312,12 +409,12 @@ public class uploadXLS {
                                             f_ejecutado.add(validFecha);
                                         } else {
                                             t1Error = true;
-                                            errorType[5] = "\n• fecha de ejecutado";
+                                            errorType[7] = "\n• fecha de ejecutado";
                                         }
 
                                     } catch (Exception e) {
                                         t1Error = true;
-                                        errorType[5] = "\n• fecha de ejecutado";
+                                        errorType[7] = "\n• fecha de ejecutado";
                                     }
 
                                     try {
@@ -328,39 +425,43 @@ public class uploadXLS {
                                             f_cierre.add(validFecha);
                                         } else {
                                             t1Error = true;
-                                            errorType[5] = "\n• fecha de cierre";
+                                            errorType[8] = "\n• fecha de cierre";
                                         }
                                     } catch (Exception e) {
                                         t1Error = true;
-                                        errorType[6] = "\n• fecha de cierre";
+                                        errorType[8] = "\n• fecha de cierre";
                                     }
 
                                 }
 
                                 if (t1Error != true) {
                                     dataWS1.add(avisos);
+                                    dataWS1.add(cuenta_contrato);
                                     dataWS1.add(pagos);
                                     dataWS1.add(tipoSolicitud);
                                     dataWS1.add(porcion);
                                     dataWS1.add(fecha);
+                                    dataWS1.add(direccion);
                                     dataWS1.add(f_ejecutado);
                                     dataWS1.add(f_cierre);
                                 } else {
-                                    error[0] += "\n➤ IMPRESIÓN" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + "\n";
+                                    error[0] += "\n➤ IMPRESIÓN" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + errorType[7] + errorType[8] + "\n";
                                     threadsError.set(true);
                                 }
                             });
                             Thread sheet2 = new Thread(() -> {
-                                String[] errorType = {"","","","","",""};
+                                String[] errorType = {"","","","","","","",""};
 
                                 boolean t2Error = false;
 
                                 List<String> avisos = new ArrayList<>();
+                                List<Integer> cuenta_contrato = new ArrayList<>();
                                 List<Integer> pagos = new ArrayList<>();
                                 List<String> tipoSolicitud = new ArrayList<>();
                                 List<String> porcion = new ArrayList<>();
                                 List<Integer> resultado = new ArrayList<>();
                                 List<String> fecha = new ArrayList<>();
+                                List<String> direccion = new ArrayList<>();
 
                                 DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
                                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -374,6 +475,13 @@ public class uploadXLS {
                                     }
 
                                     try {
+                                        cuenta_contrato.add(ws2.getCells().get(i,0).getIntValue());
+                                    } catch (Exception e) {
+                                        t2Error = true;
+                                        errorType[1] = "\n• cuenta contrato";
+                                    }
+
+                                    try {
                                         String value = ws2.getCells().get(i,1).getStringValue();
                                         if (value.equals("#N/A") || value.contains("$-")) {
                                             pagos.add(0);
@@ -382,23 +490,22 @@ public class uploadXLS {
                                         }
 
                                     } catch (Exception e) {
-                                        System.out.println(e);
                                         t2Error = true;
-                                        errorType[1] = "\n• pagos";
+                                        errorType[2] = "\n• pagos";
                                     }
 
                                     if (ws2.getCells().get(i,3).getValue() != null && ws2.getCells().get(i,3).getValue() != "" && (ws2.getCells().get(i,3).getValue().equals("SUSPENSION") || ws2.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
                                         tipoSolicitud.add(ws2.getCells().get(i,3).getStringValue());
                                     } else {
                                         t2Error = true;
-                                        errorType[2] = "\n• tipo de solicitud";
+                                        errorType[3] = "\n• tipo de solicitud";
                                     }
 
                                     if (ws2.getCells().get(i,7).getValue() != null && ws2.getCells().get(i,7).getValue() != "" && ws2.getCells().get(i,7).getValue() == valPorcion) {
                                         porcion.add(ws2.getCells().get(i,7).getStringValue());
                                     } else {
                                         t2Error = true;
-                                        errorType[3] = "\n• porcion";
+                                        errorType[4] = "\n• porcion";
                                     }
 
                                     try {
@@ -408,40 +515,54 @@ public class uploadXLS {
                                         fecha.add(validFecha);
                                     } catch (Exception e) {
                                         t2Error = true;
-                                        errorType[4] = "\n• fecha de programación";
+                                        errorType[5] = "\n• fecha de programación";
+                                    }
+
+                                    if (ws2.getCells().get(i,6).getValue() != null && ws2.getCells().get(i,6).getValue() != "") {
+                                        String validDireccion = ws2.getCells().get(i,6).getStringValue();
+                                        validDireccion.replace(",","");
+                                        validDireccion.replace(";","");
+                                        direccion.add(validDireccion);
+                                    } else {
+                                        t2Error = true;
+                                        errorType[6] = "\n• dirección";
                                     }
 
                                     try {
                                         resultado.add(ws2.getCells().get(i,11).getIntValue());
                                     } catch (Exception e) {
                                         t2Error = true;
-                                        errorType[1] = "\n• resultado";
+                                        errorType[7] = "\n• resultado";
                                     }
 
                                 }
 
                                 if (t2Error != true) {
                                     dataWS2.add(avisos);
+                                    dataWS2.add(cuenta_contrato);
                                     dataWS2.add(pagos);
                                     dataWS2.add(tipoSolicitud);
                                     dataWS2.add(porcion);
                                     dataWS2.add(fecha);
+                                    dataWS2.add(direccion);
                                     dataWS2.add(resultado);
                                 } else {
-                                    error[0] += "\n➤ SyT" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + "\n";
+                                    error[0] += "\n➤ SyT" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + errorType[7] +"\n";
                                     threadsError.set(true);
                                 }
                             });
                             Thread sheet3 = new Thread(() -> {
-                                String[] errorType = {"","","","",""};
+                                String[] errorType = {"","","","","","",""};
 
                                 boolean t3Error = false;
 
                                 List<String> avisos = new ArrayList<>();
+                                List<Integer> cuenta_contrato = new ArrayList<>();
                                 List<Integer> pagos = new ArrayList<>();
                                 List<String> tipoSolicitud = new ArrayList<>();
                                 List<String> porcion = new ArrayList<>();
                                 List<String> fecha = new ArrayList<>();
+                                List<String> direccion = new ArrayList<>();
 
                                 DateFormat dateFormat = new SimpleDateFormat("d/MM/yyyy");
                                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -455,6 +576,13 @@ public class uploadXLS {
                                     }
 
                                     try {
+                                        cuenta_contrato.add(ws3.getCells().get(i,0).getIntValue());
+                                    } catch (Exception e) {
+                                        t3Error = true;
+                                        errorType[1] = "\n• cuenta contrato";
+                                    }
+
+                                    try {
                                         String value = ws3.getCells().get(i,1).getStringValue();
                                         if (value.equals("#N/A") || value.contains("$-")) {
                                             pagos.add(0);
@@ -464,21 +592,21 @@ public class uploadXLS {
 
                                     } catch (Exception e) {
                                         t3Error = true;
-                                        errorType[1] = "\n• pagos";
+                                        errorType[2] = "\n• pagos";
                                     }
 
                                     if (ws3.getCells().get(i,3).getValue() != null && ws3.getCells().get(i,3).getValue() != "" && (ws3.getCells().get(i,3).getValue().equals("SUSPENSION") || ws3.getCells().get(i,3).getValue().equals("TAPONAMIENTO"))) {
                                         tipoSolicitud.add(ws3.getCells().get(i,3).getStringValue());
                                     } else {
                                         t3Error = true;
-                                        errorType[2] = "\n• tipo de solicitud";
+                                        errorType[3] = "\n• tipo de solicitud";
                                     }
 
                                     if (ws3.getCells().get(i,7).getValue() != null && ws3.getCells().get(i,7).getValue() != "" && ws3.getCells().get(i,7).getValue() == valPorcion) {
                                         porcion.add(ws3.getCells().get(i,7).getStringValue());
                                     } else {
                                         t3Error = true;
-                                        errorType[3] = "\n• porcion";
+                                        errorType[4] = "\n• porcion";
                                     }
 
                                     try {
@@ -488,18 +616,30 @@ public class uploadXLS {
                                         fecha.add(validFecha);
                                     } catch (Exception e) {
                                         t3Error = true;
-                                        errorType[4] = "\n• fecha de programación";
+                                        errorType[5] = "\n• fecha de programación";
+                                    }
+
+                                    if (ws3.getCells().get(i,6).getValue() != null && ws3.getCells().get(i,6).getValue() != "") {
+                                        String validDireccion = ws3.getCells().get(i,6).getStringValue();
+                                        validDireccion.replace(",","");
+                                        validDireccion.replace(";","");
+                                        direccion.add(validDireccion);
+                                    } else {
+                                        t3Error = true;
+                                        errorType[6] = "\n• dirección";
                                     }
                                 }
 
                                 if (t3Error != true) {
                                     dataWS3.add(avisos);
+                                    dataWS3.add(cuenta_contrato);
                                     dataWS3.add(pagos);
                                     dataWS3.add(tipoSolicitud);
                                     dataWS3.add(porcion);
                                     dataWS3.add(fecha);
+                                    dataWS3.add(direccion);
                                 } else {
-                                    error[0] += "\n➤ EXCLUIDAS" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + "\n";
+                                    error[0] += "\n➤ EXCLUIDAS" + errorType[0] + errorType[1] + errorType[2] + errorType[3] + errorType[4] + errorType[5] + errorType[6] + "\n";
                                     threadsError.set(true);
                                 }
                             });
@@ -552,7 +692,7 @@ public class uploadXLS {
                                                 if (i < (dataWS2.size()-1)) {
                                                     write.print(",");
                                                 } else if (i == (dataWS2.size()-1)) {
-                                                    write.print("," + dataWS1.get(5).get(0) + "," + dataWS1.get(6).get(0) + "\n");
+                                                    write.print("," + dataWS1.get(7).get(0) + "," + dataWS1.get(8).get(0) + "\n");
                                                 }
                                             }
                                         }
@@ -572,7 +712,7 @@ public class uploadXLS {
                                                 if (i < (dataWS3.size()-1)) {
                                                     write.print(",");
                                                 } else if (i == (dataWS3.size()-1)) {
-                                                    write.print("," + dataWS1.get(5).get(0) + "," + dataWS1.get(6).get(0) + "\n");
+                                                    write.print("," + dataWS1.get(7).get(0) + "," + dataWS1.get(8).get(0) + "\n");
                                                 }
                                             }
                                         }
@@ -613,25 +753,147 @@ public class uploadXLS {
                                     p.getErrorStream().close();
                                     p.waitFor();
 
-                                    String deleteDate = dataWS1.get(4).get(0).toString();
-                                    try {
-                                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                                        Calendar c = Calendar.getInstance();
-                                        c.setTime(dateFormat.parse(deleteDate));
-                                        c.add(Calendar.YEAR, -1);
-                                        deleteDate = dateFormat.format(c.getTime());
-                                    } catch (Exception e) {
-                                        System.out.println(e);
-                                    }
+                                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                    Calendar lastCalendar = Calendar.getInstance();
+                                    Calendar uploadCalendarInitial = Calendar.getInstance();
+                                    Calendar uploadCalendarLast = Calendar.getInstance();
 
                                     conexion database = new conexion();
                                     Connection con = database.conectarSQL();
+                                    PreparedStatement ps = con.prepareStatement("SELECT DISTINCT f_cierre FROM SyT ORDER BY f_cierre");
+                                    ResultSet rs = ps.executeQuery();
+                                    lastCalendar.setTime(dateFormat.parse(rs.getString("f_cierre")));
 
-                                    String[] tables = {"IMPRESION", "SyT", "EXCLUIDAS"};
-                                    for (int i = 0; i < tables.length; i++) {
-                                        PreparedStatement ps = con.prepareStatement("DELETE FROM "+tables[i]+" WHERE (fecha < '"+deleteDate+"');");
-                                        ps.executeUpdate();
+                                    Date validateDate;
+                                    Date uploadDateInitial = null;
+                                    Date uploadDateLast = null;
+
+                                    for (int i = 0; i < dataWS1.get(8).size(); i++) {
+                                        validateDate = dateFormat.parse(dataWS1.get(8).get(i).toString());
+                                        if (uploadDateInitial == null || validateDate.before(uploadDateInitial)) {
+                                            uploadDateInitial = dateFormat.parse(dataWS1.get(8).get(i).toString());
+                                        }
+                                        if (uploadDateLast == null || uploadDateLast.before(validateDate)) {
+                                            uploadDateLast = dateFormat.parse(dataWS1.get(8).get(i).toString());
+                                        }
                                     }
+                                    uploadCalendarInitial.setTime(uploadDateInitial);
+                                    uploadCalendarLast.setTime(uploadDateLast);
+
+                                    if (uploadCalendarInitial.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1  || uploadCalendarLast.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1 && uploadCalendarInitial.get(Calendar.MONTH) == 0 || uploadCalendarLast.get(Calendar.MONTH) == 0) {
+                                        if (uploadCalendarInitial.get(Calendar.MONTH) == 11) {
+                                            try {
+                                                ps = con.prepareStatement("SELECT * FROM IMPRESION WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
+                                                rs = ps.executeQuery();
+                                                File historicoImpresion = new File("files\\HISTORICO\\SyT\\IMPRESION.csv");
+                                                write = new PrintWriter(historicoImpresion);
+                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
+                                                while (rs.next()) {
+                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
+                                                }
+                                                write.close();
+                                                Workbook wbImpresion = new Workbook(historicoImpresion.getAbsolutePath());
+
+                                                Style style = new Style();
+                                                style.setForegroundColor(Color.fromArgb(255, 255, 102));
+                                                style.setPattern(BackgroundType.SOLID);
+                                                wbImpresion.getWorksheets().get(0).getCells().createRange("A1:I1").setStyle(style);
+
+                                                Cells cells = wbImpresion.getWorksheets().get(0).getCells();
+                                                cells.setColumnWidth(0, 13.43); //A
+                                                cells.setColumnWidth(1, 9.43); //B
+                                                cells.setColumnWidth(2, 6.29); //C
+                                                cells.setColumnWidth(3, 14.86); //D
+                                                cells.setColumnWidth(4, 15.43); //E
+                                                cells.setColumnWidth(5, 40); //F
+                                                cells.setColumnWidth(6, 10); //G
+                                                cells.setColumnWidth(7, 10); //H
+                                                cells.setColumnWidth(8, 10); //H
+
+                                                wbImpresion.save("files\\HISTORICO\\SyT\\Impresion.xlsx");
+
+                                                ps = con.prepareStatement("SELECT * FROM SyT WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
+                                                rs = ps.executeQuery();
+                                                File historicoSyT = new File("files\\HISTORICO\\SyT\\SyT.csv");
+                                                write = new PrintWriter(historicoSyT);
+                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,resultado,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
+                                                while (rs.next()) {
+                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("resultado") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
+                                                }
+                                                write.close();
+                                                Workbook wbSyT = new Workbook(historicoSyT.getAbsolutePath());
+
+                                                wbSyT.getWorksheets().get(0).getCells().createRange("A1:J1").setStyle(style);
+
+                                                cells = wbSyT.getWorksheets().get(0).getCells();
+                                                cells.setColumnWidth(0, 13.43); //A
+                                                cells.setColumnWidth(1, 9.43); //B
+                                                cells.setColumnWidth(2, 6.29); //C
+                                                cells.setColumnWidth(3, 14.86); //D
+                                                cells.setColumnWidth(4, 7.86); //E
+                                                cells.setColumnWidth(5, 15.57); //F
+                                                cells.setColumnWidth(6, 40); //G
+                                                cells.setColumnWidth(7, 10); //H
+                                                cells.setColumnWidth(8, 10); //I
+                                                cells.setColumnWidth(9, 10); //J
+
+                                                wbSyT.save("files\\HISTORICO\\SyT\\SyT.xlsx");
+
+                                                ps = con.prepareStatement("SELECT * FROM EXCLUIDAS WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
+                                                rs = ps.executeQuery();
+                                                File historicoExcluidas = new File("files\\HISTORICO\\SyT\\EXCLUIDAS.csv");
+                                                write = new PrintWriter(historicoExcluidas);
+                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
+                                                while (rs.next()) {
+                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
+                                                }
+                                                write.close();
+                                                Workbook wbExcluidas = new Workbook(historicoExcluidas.getAbsolutePath());
+
+                                                wbExcluidas.getWorksheets().get(0).getCells().createRange("A1:I1").setStyle(style);
+
+                                                cells = wbExcluidas.getWorksheets().get(0).getCells();
+                                                cells.setColumnWidth(0, 13.43); //A
+                                                cells.setColumnWidth(1, 9.43); //B
+                                                cells.setColumnWidth(2, 6.29); //C
+                                                cells.setColumnWidth(3, 14.86); //D
+                                                cells.setColumnWidth(4, 15.43); //E
+                                                cells.setColumnWidth(5, 40); //F
+                                                cells.setColumnWidth(6, 10); //G
+                                                cells.setColumnWidth(7, 10); //H
+                                                cells.setColumnWidth(8, 10); //I
+
+                                                wbExcluidas.save("files\\HISTORICO\\SyT\\Excluidas.xlsx");
+
+                                                historicoImpresion.delete();
+                                                historicoSyT.delete();
+                                                historicoExcluidas.delete();
+
+                                                Workbook historico = new Workbook();
+                                                historico.combine(wbImpresion);
+                                                historico.combine(wbSyT);
+                                                historico.combine(wbExcluidas);
+                                                historico.getWorksheets().removeAt(0);
+                                                historico.save("files\\HISTORICO\\SyT\\Historico Suspensiones y Taponamientos " + uploadCalendarInitial.get(Calendar.YEAR) + ".xlsx");
+                                                new File("files\\HISTORICO\\SyT\\Impresion.xlsx").delete();
+                                                new File("files\\HISTORICO\\SyT\\SyT.xlsx").delete();
+                                                new File("files\\HISTORICO\\SyT\\Excluidas.xlsx").delete();
+                                                isHistoric = true;
+                                                typeHistoric = "SUSPENSIONES Y TAPONAMIENTOS";
+                                            } catch (Exception e) {
+                                                System.out.println(e);
+                                            }
+                                        } else if (uploadCalendarInitial.get(Calendar.MONTH) == 0) {
+                                            uploadCalendarInitial.add(Calendar.YEAR, -1);
+                                            ps = con.prepareStatement("DELETE FROM SyT WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
+                                            ps.executeUpdate();
+                                            ps = con.prepareStatement("DELETE FROM IMPRESION WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
+                                            ps.executeUpdate();
+                                            ps = con.prepareStatement("DELETE FROM EXCLUIDAS WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
+                                            ps.executeUpdate();
+                                        }
+                                    }
+
                                 } catch (Exception e) {
                                     System.out.println(e);
                                 }
@@ -705,6 +967,13 @@ public class uploadXLS {
                     alert.setTitle("Success");
                     alert.setContentText(file.getName()+" SUBIDO CORRECTAMENTE.");
                     alert.showAndWait();
+                    if (isHistoric == true) {
+                        Alert alertH = new Alert(Alert.AlertType.INFORMATION);
+                        alertH.setHeaderText(null);
+                        alertH.setTitle("Info");
+                        alertH.setContentText("SE HA CREADO UN HISTORICO DE "+typeHistoric+" DEL ULTIMO AÑO.");
+                        alertH.showAndWait();
+                    }
                 } else {
                     if (codeError == 1) {
                         Alert alert = new Alert(Alert.AlertType.WARNING);
