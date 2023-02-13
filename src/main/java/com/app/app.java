@@ -218,6 +218,22 @@ public class app extends Application {
             }
         });
 
+        Button historicButton = new Button("GENERAR HISTORICO");
+        historicButton.relocate(55,320);
+        historicButton.setPrefSize(360,50);
+        layout.getChildren().add(historicButton);
+        historicButton.setOnAction(event -> {
+            primaryStage.close();
+
+            Stage initStage = new Stage();
+            new loading(initStage);
+
+            new Thread (() -> {
+                historic h = new historic();
+                h.historic(initStage);
+            }).start();
+        });
+
         mainPanel.setCenter(layout);
         //root
         GridPane root = new GridPane();

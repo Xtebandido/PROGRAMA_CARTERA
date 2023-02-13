@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -176,75 +175,31 @@ public class uploadXLS {
                                     p.waitFor();
 
                                     dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                                    Calendar lastCalendar = Calendar.getInstance();
                                     Calendar uploadCalendarInitial = Calendar.getInstance();
-                                    Calendar uploadCalendarLast = Calendar.getInstance();
-
-                                    conexion database = new conexion();
-                                    Connection con = database.conectarSQL();
-                                    PreparedStatement ps = con.prepareStatement("SELECT DISTINCT f_cierre FROM REINSTALACIONES ORDER BY f_cierre");
-                                    ResultSet rs = ps.executeQuery();
-                                    lastCalendar.setTime(dateFormat.parse(rs.getString("f_cierre")));
 
                                     Date validateDate;
                                     Date uploadDateInitial = null;
-                                    Date uploadDateLast = null;
 
                                     for (int i = 0; i < dataWS1.get(7).size(); i++) {
                                         validateDate = dateFormat.parse(dataWS1.get(7).get(i).toString());
                                         if (uploadDateInitial == null || validateDate.before(uploadDateInitial)) {
                                             uploadDateInitial = dateFormat.parse(dataWS1.get(7).get(i).toString());
                                         }
-                                        if (uploadDateLast == null || uploadDateLast.before(validateDate)) {
-                                            uploadDateLast = dateFormat.parse(dataWS1.get(7).get(i).toString());
-                                        }
                                     }
                                     uploadCalendarInitial.setTime(uploadDateInitial);
-                                    uploadCalendarLast.setTime(uploadDateLast);
-
-                                    if (uploadCalendarInitial.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1  || uploadCalendarLast.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1 && uploadCalendarInitial.get(Calendar.MONTH) == 0 || uploadCalendarLast.get(Calendar.MONTH) == 0) {
-                                        if (uploadCalendarInitial.get(Calendar.MONTH) == 11) {
-                                            ps = con.prepareStatement("SELECT * FROM REINSTALACIONES WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
-                                            rs = ps.executeQuery();
-                                            try {
-                                                File historicoCSV = new File("files\\HISTORICO\\Reinstalaciones\\historico.csv");
-                                                write = new PrintWriter(historicoCSV);
-                                                write.print("cuenta_contrato, porcion, tipo_solicitud, resultado, fecha, direccion, f_cierre, aviso\n");
-                                                while (rs.next()) {
-                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("resultado") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso")+ "\n");
-                                                }
-                                                write.close();
-                                                Workbook wb = new Workbook(historicoCSV.getAbsolutePath());
-
-                                                Style style = new Style();
-                                                style.setForegroundColor(Color.fromArgb(255,255,102));
-                                                style.setPattern(BackgroundType.SOLID);
-                                                wb.getWorksheets().get(0).getCells().createRange("A1:H1").setStyle(style);
-
-                                                Cells cells = wb.getWorksheets().get(0).getCells();
-                                                cells.setColumnWidth(0, 13.43); //A
-                                                cells.setColumnWidth(1, 6.57); //B
-                                                cells.setColumnWidth(2, 15.29); //C
-                                                cells.setColumnWidth(3, 8.71); //D
-                                                cells.setColumnWidth(4, 10); //E
-                                                cells.setColumnWidth(5, 40); //F
-                                                cells.setColumnWidth(6, 10); //G
-                                                cells.setColumnWidth(7, 10); //H
-
-
-                                                wb.save("files\\HISTORICO\\Reinstalaciones\\Historico Reinstalaciones " + uploadCalendarInitial.get(Calendar.YEAR) + ".xlsx");
-                                                historicoCSV.delete();
-                                                isHistoric = true;
-                                                typeHistoric = "REINSTALACIONES";
-                                            } catch (Exception e) {
-                                                System.out.println(e);
-                                            }
-                                        } else if (uploadCalendarInitial.get(Calendar.MONTH) == 0) {
-                                            uploadCalendarInitial.add(Calendar.YEAR, -1);
-                                            ps = con.prepareStatement("DELETE FROM REINSTALACIONES WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
-                                            ps.executeUpdate();
-                                        }
+                                    int mouth = uploadCalendarInitial.get(Calendar.MONTH);
+                                    mouth++;
+                                    String mes = "" + mouth;
+                                    if (mes.length() == 1) {
+                                        mes = "0" + mouth;
                                     }
+
+                                    uploadCalendarInitial.add(Calendar.YEAR, -1);
+
+                                    conexion database = new conexion();
+                                    Connection con = database.conectarSQL();
+                                    PreparedStatement ps = con.prepareStatement("DELETE FROM REINSTALACIONES WHERE (f_cierre <= '" + uploadCalendarInitial.get(Calendar.YEAR) + "-"+mes+"-31');");
+                                    ps.executeUpdate();
 
                                 } catch (Exception e) {
                                     System.out.println(e);
@@ -754,145 +709,35 @@ public class uploadXLS {
                                     p.waitFor();
 
                                     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                                    Calendar lastCalendar = Calendar.getInstance();
                                     Calendar uploadCalendarInitial = Calendar.getInstance();
-                                    Calendar uploadCalendarLast = Calendar.getInstance();
-
-                                    conexion database = new conexion();
-                                    Connection con = database.conectarSQL();
-                                    PreparedStatement ps = con.prepareStatement("SELECT DISTINCT f_cierre FROM SyT ORDER BY f_cierre");
-                                    ResultSet rs = ps.executeQuery();
-                                    lastCalendar.setTime(dateFormat.parse(rs.getString("f_cierre")));
 
                                     Date validateDate;
                                     Date uploadDateInitial = null;
-                                    Date uploadDateLast = null;
 
                                     for (int i = 0; i < dataWS1.get(8).size(); i++) {
                                         validateDate = dateFormat.parse(dataWS1.get(8).get(i).toString());
                                         if (uploadDateInitial == null || validateDate.before(uploadDateInitial)) {
                                             uploadDateInitial = dateFormat.parse(dataWS1.get(8).get(i).toString());
                                         }
-                                        if (uploadDateLast == null || uploadDateLast.before(validateDate)) {
-                                            uploadDateLast = dateFormat.parse(dataWS1.get(8).get(i).toString());
-                                        }
                                     }
                                     uploadCalendarInitial.setTime(uploadDateInitial);
-                                    uploadCalendarLast.setTime(uploadDateLast);
-
-                                    if (uploadCalendarInitial.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1  || uploadCalendarLast.get(Calendar.YEAR) - lastCalendar.get(Calendar.YEAR) <= 1 && uploadCalendarInitial.get(Calendar.MONTH) == 0 || uploadCalendarLast.get(Calendar.MONTH) == 0) {
-                                        if (uploadCalendarInitial.get(Calendar.MONTH) == 11) {
-                                            try {
-                                                ps = con.prepareStatement("SELECT * FROM IMPRESION WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
-                                                rs = ps.executeQuery();
-                                                File historicoImpresion = new File("files\\HISTORICO\\SyT\\IMPRESION.csv");
-                                                write = new PrintWriter(historicoImpresion);
-                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
-                                                while (rs.next()) {
-                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
-                                                }
-                                                write.close();
-                                                Workbook wbImpresion = new Workbook(historicoImpresion.getAbsolutePath());
-
-                                                Style style = new Style();
-                                                style.setForegroundColor(Color.fromArgb(255, 255, 102));
-                                                style.setPattern(BackgroundType.SOLID);
-                                                wbImpresion.getWorksheets().get(0).getCells().createRange("A1:I1").setStyle(style);
-
-                                                Cells cells = wbImpresion.getWorksheets().get(0).getCells();
-                                                cells.setColumnWidth(0, 13.43); //A
-                                                cells.setColumnWidth(1, 9.43); //B
-                                                cells.setColumnWidth(2, 6.29); //C
-                                                cells.setColumnWidth(3, 14.86); //D
-                                                cells.setColumnWidth(4, 15.43); //E
-                                                cells.setColumnWidth(5, 40); //F
-                                                cells.setColumnWidth(6, 10); //G
-                                                cells.setColumnWidth(7, 10); //H
-                                                cells.setColumnWidth(8, 10); //H
-
-                                                wbImpresion.save("files\\HISTORICO\\SyT\\Impresion.xlsx");
-
-                                                ps = con.prepareStatement("SELECT * FROM SyT WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
-                                                rs = ps.executeQuery();
-                                                File historicoSyT = new File("files\\HISTORICO\\SyT\\SyT.csv");
-                                                write = new PrintWriter(historicoSyT);
-                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,resultado,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
-                                                while (rs.next()) {
-                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("resultado") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
-                                                }
-                                                write.close();
-                                                Workbook wbSyT = new Workbook(historicoSyT.getAbsolutePath());
-
-                                                wbSyT.getWorksheets().get(0).getCells().createRange("A1:J1").setStyle(style);
-
-                                                cells = wbSyT.getWorksheets().get(0).getCells();
-                                                cells.setColumnWidth(0, 13.43); //A
-                                                cells.setColumnWidth(1, 9.43); //B
-                                                cells.setColumnWidth(2, 6.29); //C
-                                                cells.setColumnWidth(3, 14.86); //D
-                                                cells.setColumnWidth(4, 7.86); //E
-                                                cells.setColumnWidth(5, 15.57); //F
-                                                cells.setColumnWidth(6, 40); //G
-                                                cells.setColumnWidth(7, 10); //H
-                                                cells.setColumnWidth(8, 10); //I
-                                                cells.setColumnWidth(9, 10); //J
-
-                                                wbSyT.save("files\\HISTORICO\\SyT\\SyT.xlsx");
-
-                                                ps = con.prepareStatement("SELECT * FROM EXCLUIDAS WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"-12-31');");
-                                                rs = ps.executeQuery();
-                                                File historicoExcluidas = new File("files\\HISTORICO\\SyT\\EXCLUIDAS.csv");
-                                                write = new PrintWriter(historicoExcluidas);
-                                                write.print("cuenta_contrato,pagos,porcion,tipo_solicitud,fecha_programado,direccion,f_ejecutado,f_cierre,aviso\n");
-                                                while (rs.next()) {
-                                                    write.print(rs.getString("cuenta_contrato") + "," + rs.getString("pagos") + "," + rs.getString("porcion") + "," + rs.getString("tipo_solicitud") + "," + rs.getString("fecha") + "," + rs.getString("direccion") + "," + rs.getString("f_ejecutado") + "," + rs.getString("f_cierre") + "," + rs.getString("aviso") +"\n");
-                                                }
-                                                write.close();
-                                                Workbook wbExcluidas = new Workbook(historicoExcluidas.getAbsolutePath());
-
-                                                wbExcluidas.getWorksheets().get(0).getCells().createRange("A1:I1").setStyle(style);
-
-                                                cells = wbExcluidas.getWorksheets().get(0).getCells();
-                                                cells.setColumnWidth(0, 13.43); //A
-                                                cells.setColumnWidth(1, 9.43); //B
-                                                cells.setColumnWidth(2, 6.29); //C
-                                                cells.setColumnWidth(3, 14.86); //D
-                                                cells.setColumnWidth(4, 15.43); //E
-                                                cells.setColumnWidth(5, 40); //F
-                                                cells.setColumnWidth(6, 10); //G
-                                                cells.setColumnWidth(7, 10); //H
-                                                cells.setColumnWidth(8, 10); //I
-
-                                                wbExcluidas.save("files\\HISTORICO\\SyT\\Excluidas.xlsx");
-
-                                                historicoImpresion.delete();
-                                                historicoSyT.delete();
-                                                historicoExcluidas.delete();
-
-                                                Workbook historico = new Workbook();
-                                                historico.combine(wbImpresion);
-                                                historico.combine(wbSyT);
-                                                historico.combine(wbExcluidas);
-                                                historico.getWorksheets().removeAt(0);
-                                                historico.save("files\\HISTORICO\\SyT\\Historico Suspensiones y Taponamientos " + uploadCalendarInitial.get(Calendar.YEAR) + ".xlsx");
-                                                new File("files\\HISTORICO\\SyT\\Impresion.xlsx").delete();
-                                                new File("files\\HISTORICO\\SyT\\SyT.xlsx").delete();
-                                                new File("files\\HISTORICO\\SyT\\Excluidas.xlsx").delete();
-                                                isHistoric = true;
-                                                typeHistoric = "SUSPENSIONES Y TAPONAMIENTOS";
-                                            } catch (Exception e) {
-                                                System.out.println(e);
-                                            }
-                                        } else if (uploadCalendarInitial.get(Calendar.MONTH) == 0) {
-                                            uploadCalendarInitial.add(Calendar.YEAR, -1);
-                                            ps = con.prepareStatement("DELETE FROM SyT WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
-                                            ps.executeUpdate();
-                                            ps = con.prepareStatement("DELETE FROM IMPRESION WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
-                                            ps.executeUpdate();
-                                            ps = con.prepareStatement("DELETE FROM EXCLUIDAS WHERE (f_cierre < '"+uploadCalendarInitial.get(Calendar.YEAR)+"01-31');");
-                                            ps.executeUpdate();
-                                        }
+                                    int mouth = uploadCalendarInitial.get(Calendar.MONTH);
+                                    mouth++;
+                                    String mes = "" + mouth;
+                                    if (mes.length() == 1) {
+                                        mes = "0" + mouth;
                                     }
+
+                                    uploadCalendarInitial.add(Calendar.YEAR, -1);
+
+                                    conexion database = new conexion();
+                                    Connection con = database.conectarSQL();
+                                    PreparedStatement ps = con.prepareStatement("DELETE FROM SyT WHERE (f_cierre <= '" + uploadCalendarInitial.get(Calendar.YEAR) + "-"+mes+"-31');");
+                                    ps.executeUpdate();
+                                    ps = con.prepareStatement("DELETE FROM IMPRESION WHERE (f_cierre <= '" + uploadCalendarInitial.get(Calendar.YEAR) + "-"+mes+"-31');");
+                                    ps.executeUpdate();
+                                    ps = con.prepareStatement("DELETE FROM EXCLUIDAS WHERE (f_cierre <= '" + uploadCalendarInitial.get(Calendar.YEAR) + "-"+mes+"-31');");
+                                    ps.executeUpdate();
 
                                 } catch (Exception e) {
                                     System.out.println(e);
