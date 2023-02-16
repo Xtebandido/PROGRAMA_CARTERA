@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -22,6 +23,11 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.event.EventHandler;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -120,8 +126,15 @@ public class app extends Application {
         primaryStage.setX((primScreenBounds.getWidth() - primaryStage.getWidth()) / 2);
         primaryStage.setY((primScreenBounds.getHeight() - primaryStage.getHeight()) / 2);
 
-
-
+        mainPanel.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.RIGHT) {
+                layout.getChildren().clear();
+                windowsDeudores(primaryStage, layout,mainPanel,eventHandler);
+            } else if (event.getCode() == KeyCode.LEFT) {
+                layout.getChildren().clear();
+                windowsInforme(primaryStage, layout,mainPanel,eventHandler);
+            }
+        });
     }
 
     public void windowsInforme (Stage primaryStage, Pane layout, BorderPane mainPanel, EventHandler eventHandler) {
@@ -255,7 +268,7 @@ public class app extends Application {
                 new Thread(() -> {
                     typeExcelButton = 1;
                     generateXLS gen = new generateXLS();
-                    gen.generate(initStage, comboMonth.getValue().toString(), comboYear.getValue().toString(), typeExcelButton, null, null, null, null);
+                    gen.generate(initStage, comboMonth.getValue().toString(), comboYear.getValue().toString(), typeExcelButton, null, null);
                 }).start();
             } else {
                 if (comboMonth.getSelectionModel().getSelectedIndex() == -1 && comboYear.getSelectionModel().getSelectedIndex() != -1) {
@@ -293,7 +306,7 @@ public class app extends Application {
             new Thread(() -> {
                 typeExcelButton = 2;
                 generateXLS gen = new generateXLS();
-                gen.generate(initStage, null, null, typeExcelButton, null, null, null , null);
+                gen.generate(initStage, null, null, typeExcelButton, null, null);
             }).start();
         });
         mainPanel.setCenter(layout);
@@ -321,6 +334,7 @@ public class app extends Application {
         changeFrame.addEventFilter(MouseEvent.MOUSE_EXITED, eventHandler);
         changeFrame.addEventFilter(MouseEvent.MOUSE_CLICKED, eventHandler);
     }
+
     public void windowsDeudores (Stage primaryStage, Pane layout, BorderPane mainPanel, EventHandler eventHandler) {
         Label labelDesc = new Label("Deudores");
         labelDesc.setFont(new Font("Cooper Black", 14));
@@ -406,7 +420,7 @@ public class app extends Application {
                 new Thread(() -> {
                     typeExcelButton = 3;
                     generateXLS gen = new generateXLS();
-                    gen.generate(initStage, null, null, typeExcelButton, fileHistoric[1], fileCC[1], tfHistoric, tfCC);
+                    gen.generate(initStage, null, null, typeExcelButton, fileHistoric[1], fileCC[1]);
                 }).start();
             } else {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);

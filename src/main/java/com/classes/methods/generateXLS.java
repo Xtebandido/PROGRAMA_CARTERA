@@ -2530,7 +2530,7 @@ public class generateXLS {
     }
 
     String fileError = "";
-    public void excelDeudores(Workbook wbHistoric, Workbook wbCC, TextField tfHistoric, TextField tfCC) {
+    public void excelDeudores(Workbook wbHistoric, Workbook wbCC) {
         Worksheet ws1 = wbHistoric.getWorksheets().get(1);
         List<Integer> cuenta_contrato = new ArrayList<>();
         List<Integer> pagos = new ArrayList<>();
@@ -2842,7 +2842,7 @@ public class generateXLS {
         }
     }
 
-    public void generate(Stage initStage, String month, String year, int typeExcelButton, File historicFile, File ccFile, TextField tfHistoric, TextField tfCC) {
+    public void generate(Stage initStage, String month, String year, int typeExcelButton, File historicFile, File ccFile) {
         if (typeExcelButton == 1) {
             new Thread(() -> {excelInformes(month, year);}).run();
         } else if (typeExcelButton == 2) {
@@ -2851,8 +2851,9 @@ public class generateXLS {
             try {
                 Workbook wbHistoric = new Workbook(historicFile.getAbsolutePath());
                 Workbook wbCC = new Workbook(ccFile.getAbsolutePath());
-                new Thread (() -> {excelDeudores(wbHistoric, wbCC, tfHistoric, tfCC);}).run();
+                new Thread (() -> {excelDeudores(wbHistoric, wbCC);}).run();
             } catch (Exception e) {
+                codeAlert = 4;
                 System.out.println(e);
             }
         }
