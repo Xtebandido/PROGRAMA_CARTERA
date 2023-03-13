@@ -6,7 +6,6 @@ import com.classes.connection.conexion;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
-import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import java.io.File;
 import java.io.PrintWriter;
@@ -903,7 +902,7 @@ public class generateXLS {
                 wsInforme.getCells().merge((11+(list+1)),2,1,3);
                 style = new Style();
                 //CELDA -> VALOR EJECUCION
-                wsInforme.getCells().get("F" + (12 + (list+1))).setFormula("=F" + (10 + (list+1)) + "*G" + (8 + (list+1)));
+                wsInforme.getCells().get("F" + (12 + (list+1))).setFormula("=F" + (10 + (list+1)) + "*I" + (8 + (list+1)));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,192,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -1667,7 +1666,7 @@ public class generateXLS {
                 wsInforme.getCells().merge((list2+(list+1)+4),2,1,3);
                 style = new Style();
                 //CELDA -> VALOR EJECUCION
-                wsInforme.getCells().get("F" + (list2+(list+1)+5)).setFormula("=F" + (list2+(list+1)+3) + "*G" + (list2+(list+1)+1));
+                wsInforme.getCells().get("F" + (list2+(list+1)+5)).setFormula("=F" + (list2+(list+1)+3) + "*I" + (list2+(list+1)+1));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(255,255,0));
                 style.setPattern(BackgroundType.SOLID);
@@ -2167,7 +2166,7 @@ public class generateXLS {
                 wsInforme.getCells().merge(((list3 + 16) + list),2,1,4);
                 style = new Style();
                 //CELDA -> VALOR EJECUCION
-                wsInforme.getCells().get("G" + ((list3 + 17) + list)).setFormula("=G" + ((list3 + 15) + list) + "*H" + ((list3 + 13) + list));
+                wsInforme.getCells().get("G" + ((list3 + 17) + list)).setFormula("=G" + ((list3 + 15) + list) + "*I" + ((list3 + 13) + list));
                 style.getFont().setBold(true);
                 style.setForegroundColor(Color.fromArgb(146,208,80));
                 style.setPattern(BackgroundType.SOLID);
